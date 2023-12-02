@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Game Of Life</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="menuFile/menu.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://localhost:8881/menuFile/menu.css">
+</head>
+<body>
+    <div class="menu">
+        <h1 class="title">LE JEU DE LA VIE</h1>
+        <div id="nameInput" class="name">
+            Name: <input type="text" id="playerNameInput" placeholder="Enter your name" />
+            <button onclick="changeName()">Set Name</button>
+            
+        </div>
+        <div id="greeting" class="greetings" ></div>
+        <div class="select">
+            <div class="create">
+                
+                <div>
+                    <input type="range" id="nbPlayer" name="nbPlayer" min="1" max="4" />
+                    <label for="nbPlayer">Nombre de joueurs</label>
+        
+                </div>
+                <div>
+                    <input type="range" id="size" name="size" min="5" max="50" />
+                    <label for="size">Taille de la carte</label>
+                </div>
+                <button onclick="createGame()">CREER UNE PARTIE</button>
+            </div>
+            <div class="join">
+                <input type="text" id="gameId" placeholder="Enter the gameId"/> <!-- here you enter the game id -->
+                <button id="joinButton" onclick="joinGame()">Rejoindre</button>
+                
+            </div>
+        </div>
+        <label id="messageServeur"></label>
+    </div>
+</body>
+</html>

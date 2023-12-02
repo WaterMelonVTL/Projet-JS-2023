@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="gameFile/socketFunctions.js"></script>
+    <script src="gameFile/gameLogic.js"></script>
+    <script src="gameFile/main.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://localhost:8881/gameFile/modal.css">
+    <link rel="stylesheet" type="text/css" href="http://localhost:8881/gameFile/index.css">
+</head>
+
+<body>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <p id="welcomeMessage"></p>
+            <button id="enterButton" onclick="enterGame()">Enter</button>
+            <button id="spectateButton" onclick="spectateGame()">Spectate</button>
+            <label id="ModalMessage"></label>
+        </div>
+    </div>
+    <div id="joueurs">
+        Joueurs : <label id="listeJoueurs"></label> <br />
+        Votre nom : <label id="nom"></label>
+        <button type="button" id="btnQuitter">Quitter la partie</button>
+        <button id="generateTIles" onclick="generateTiles()">Generer</button>
+        <button id="generateTIles" onclick="reset()">REset</button>
+        <div>
+            <input type="range" id="range" name="range" min="1" max="10" />
+            <label for="range">Portée</label>
+        </div>
+    </div>
+    <div id="playarea" class="playarea">
+
+    </div>
+    <hr />
+    Message du serveur : <label id="messageServeur"></label>
+    <hr />
+</body>
+
+</html>
