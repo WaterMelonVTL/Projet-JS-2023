@@ -19,10 +19,19 @@
     </div>
     <div id="myModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
+
             <p id="welcomeMessage"></p>
-            <button id="enterButton" onclick="enterGame()">Enter</button>
-            <button id="spectateButton" onclick="spectateGame()">Spectate</button>
+            <div id="nameContent" style="display: none; " class="nameInput">
+                <h1 >
+                    Vous devez définir votre nom pour rejoindre une partie
+                </h1>
+                <input type="text" id="nameInput"/>
+                <button id="nameButton" onclick="defPname()">définir</button>
+            </div>
+            <div class="buttons">
+                <button id="enterButton" onclick="enterGame()" class='button'><h1>Enter</h1></button>
+                <button id="spectateButton" onclick="closeModal()" class='button'><h1>Spectate</h1></button>
+            </div>
             <label id="ModalMessage"></label>
         </div>
     </div>

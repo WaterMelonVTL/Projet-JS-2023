@@ -247,7 +247,7 @@ io.on('connection', (socket) => {
             {
                 "allowed": true,
                 "playerNumber": games[gameId].players.indexOf(playerName),
-                'playerList': games[gameId].players
+                
             });
 
         console.log("player " + playerName + " Entered the game : " + gameId);
@@ -495,7 +495,7 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33) {
-                                console.log(relative)
+
                                 return river_chance
                             }
                         }
@@ -524,7 +524,7 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
                             if (Math.random() < 0.33) {
-                                console.log(relative)
+
                                 return river_chance
                             }
                         }
@@ -553,7 +553,7 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
                             if (Math.random() < 0.3) {
-                                console.log(relative)
+
                                 return river_chance
                             }
                         }
@@ -582,7 +582,7 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
                             if (Math.random() < 0.33) {
-                                console.log(relative)
+
                                 return river_chance
                             }
                         }
@@ -611,7 +611,6 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {
                             if (Math.random() < 0.33) {
-                                console.log(relative)
                                 return river_chance
                             }
                         }
@@ -640,7 +639,6 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                             isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {
                             if (Math.random() < 0.33) {
-                                console.log(relative)
                                 return river_chance
                             }
                         }

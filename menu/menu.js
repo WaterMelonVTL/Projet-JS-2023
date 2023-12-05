@@ -31,19 +31,25 @@ function displayPlayerUI() {
 // Function to create a game
 // Function to create a game
 function createGame() {
-// Get the values from the input fields
-var maxPlayers = $("#nbPlayer").val();
-var size_x = $("#size").val();
-var size_y = size_x; // Assuming size_y should be the same as size_x, you can modify this if needed.
+    var playerName = getPlayerName();
 
-// Emit the "newGame" event with the obtained values
-socket.emit("newGame", { "size_x": size_x, "size_y": size_y, "maxPlayers": maxPlayers });
+    // Check if the player name field is filled
+    if (!playerName) {
+        alert("Please enter your name before joining.");
+        return;
+    }
+    var maxPlayers = $("#nbPlayer").val();
+    var size_x = $("#size").val();
+    var size_y = size_x; // Assuming size_y should be the same as size_x, you can modify this if needed.
+
+    // Emit the "newGame" event with the obtained values
+    socket.emit("newGame", { "size_x": size_x, "size_y": size_y, "maxPlayers": maxPlayers });
 }
 
 
 // Function to join a game
 function joinGame() {
-    
+
     var playerName = getPlayerName();
 
     // Check if the player name field is filled

@@ -1,5 +1,5 @@
 var gameId = null;
-const playerName = getPlayerName();
+var playerName = getPlayerName();
 var playerNumber = -1;
 var toutlemondeachoisi = false
 $(document).ready(function () 
@@ -7,17 +7,21 @@ $(document).ready(function ()
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     gameId = url.searchParams.get("gameId");
-    if (!playerName){
-        playerName='invité-'+Math.random()*10000;
-    }
-    let infos =requestGameInfo(gameId);
-    $("#listeJoueurs").text(infos.players);
+    
+    
+
+    requestGameInfo(gameId);
+    
 });
 
-function openModal(allowed,message) 
+function openModal(allowed,message,hasToSetName=false) 
 {
     $("#welcomeMessage").text(message);
-    $("#myModal").css("display", "block");
+    $("#myModal").css("display", "flex");
+    if (hasToSetName){
+        $("#nameContent").css("display", "block")
+        $("#enterButton").css("display", "none")
+    }
     if (!allowed)
     {
         $("#enterButton").css("display", "none")
@@ -50,4 +54,12 @@ if (!toutlemondeachoisi ){
     $("#playarea").style('hidden');
     $("#CreationEspece").style('block');
 
+}
+
+function defPname() {
+    let pname = $('#nameInput').val(); // Add parentheses after val
+    if (pname) {
+        document.cookie = `playerName=${pname}`;
+        location.reload();
+    }
 }
