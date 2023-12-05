@@ -246,7 +246,8 @@ io.on('connection', (socket) => {
         socket.emit('enterGameResponse',
             {
                 "allowed": true,
-                "playerNumber": games[gameId].players.indexOf(playerName)
+                "playerNumber": games[gameId].players.indexOf(playerName),
+                'playerList': games[gameId].players
             });
 
         console.log("player " + playerName + " Entered the game : " + gameId);

@@ -24,10 +24,11 @@ socket.on('gameInfo',data=>
     } else {
         openModal(true,"Welcome to game " + gameId);
     }
-    if (players.includes(PlayerName)) {
+    if (players.includes(playerName)) {
         closeModal();
         enterGame();
     }
+    $("#listeJoueurs").text(players);
     
 });
 
@@ -49,6 +50,7 @@ socket.on("enterGameResponse", data =>{
         playerNumber=data.playerNumber;
         closeModal();
         generateTiles(gameId);
+        $("#listeJoueurs").text(data.playerList);
     } else {
         $("#ModalMessage").text(data.message);
     }

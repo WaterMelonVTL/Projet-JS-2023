@@ -131,7 +131,7 @@ function createArea(w, h) {
 
 function play(x, y) {
     socket.emit("play", {
-        "player": PlayerName,
+        "player": playerName,
         "gameId": gameId,
         "tile": { "x": x, "y": y },
         "action": -1,
