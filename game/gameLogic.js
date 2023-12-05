@@ -21,7 +21,7 @@ function drawHexagon(d, color, x, y) {
         .attr("stroke-width", "1px")  // Set the stroke width to 1px
         .attr("fill", color)
         .attr("id", "h" + x + y)
-        .attr('class',"hexagon")
+        .attr('class', "hexagon")
         .on("click", function () {
             play(x, y);
         });
@@ -64,34 +64,36 @@ function drawHexagons(tiles) {
             d += "Z";
 
             var color;
-            switch (tiles[y][x].type) {
-                case -1:
-                    color = "white";
-                    break;
-                case 0:
-                    color = "#03adfc";
-                    break;
-                case 1:
-                    color = "#2e7d22";
-                    break;
-                    case 2:
-                    color = "gray";
-                    break;
-                    case 3:
-                    color = "orange";
-                    break;
+            
+                switch (tiles[y][x].type) {
+                    case -1:
+                        color = "white";
+                        break;
+                    case 0:
+                        color = "#03adfc";
+                        break;
+                    case 1:
+                        color = "#2e7d22";
+                        break;
+                    case 10:
+                        color = "green";
+                        break;
+                    case 11:
+                        color = "purple";
+                        break;
                     case 4:
-                    color = "red";
-                    break;
+                        color = "red";
+                        break;
                     case 5:
-                    color = "brown";
-                    break;
+                        color = "brown";
+                        break;
                     case 6:
-                    color = "purple";
-                    break;
-                default:
-                    color = "gray";
-            }
+                        color = "purple";
+                        break;
+                    default:
+                        color = "gray";
+                }
+            
 
             drawHexagon(d, color, col, rowIndex);
 
@@ -104,13 +106,13 @@ function drawHexagons(tiles) {
 }
 
 function createArea(w, h) {
-    
+
     console.log("nb x : " + w, "nb y : " + h);
     function updateDimensions() {
         r = Math.min((window.innerWidth / w) * 70 / 150, ((window.innerHeight / h) * 85 / 160));
-        svg.attr("width", w * r * 2 )
-            .attr("height", h * r*0.8 * 2 + r);
-        
+        svg.attr("width", w * r * 2)
+            .attr("height", h * r * 0.8 * 2 + r);
+
         hexagon = createHexagon(r);
         generateTiles();
     }
@@ -119,7 +121,7 @@ function createArea(w, h) {
 
     var svg = d3.select("#playarea")
         .append("svg")
-        .attr("width", w * r * 2 )
+        .attr("width", w * r * 2)
         .attr("height", h * r * 2 + r);
 
     window.addEventListener('resize', updateDimensions);
@@ -127,19 +129,61 @@ function createArea(w, h) {
     generateTiles();
 }
 
-function play(x,y){
+function play(x, y) {
     socket.emit("play", {
-        "player":PlayerName,
-        "gameId":gameId,
-        "tile":{"x":x,"y":y},
-        "action":-1,
+        "player": PlayerName,
+        "gameId": gameId,
+        "tile": { "x": x, "y": y },
+        "action": -1,
         //en dessous c'est pour la démo des tuiles voisines/à portée
-        "range":$('#range').val()
+        "range": $('#range').val()
     })
 }
 //pareil pour reset le plateau en full blanc
-function reset(){
+function reset() {
     socket.emit("reset", gameId)
 }
 
+function drawIndividus(tiles) {
+    console.log('test');
+    for (let col in tiles) {
+        for (let row in tiles[col]) {
+            let tile = tiles[col][row];
+            if (tile.population) {
+                drawIndividu(col, row, tile.population);
+            }
+        }
+    }
+}
 
+
+function drawIndividu(posx, posy, population) {
+    console.log('test',posx, posy)
+    let color;
+    switch (population) {
+        case 0:
+            return;
+        case 1:
+            color = 'red';
+            break;
+        case 2:
+            color = 'purple';
+            break;
+        case 3:
+            color = 'black';
+            break;
+        case 4:
+            color = 'orange';
+            break;
+    }
+
+    let ofset_y=hexagon[2][1] - hexagon[0][1];
+    let center_x= posx * 2 * hexagon[2][0] + (posy % 2 === 0 ? 2 : 1) * hexagon[2][0] + (-hexagon[2][0] + r);
+    let center_y=(posy * ofset_y ) + r;
+    d3.select('svg')
+    .append('circle')
+    .attr('cx',center_x)
+    .attr('cy',center_y)
+    .attr('r', r/4)
+    .attr('fill',color)
+}

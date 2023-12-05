@@ -34,6 +34,7 @@ socket.on('gameInfo',data=>
 socket.on('tiles', tiles => {
     console.log(tiles);
     drawHexagons(tiles);
+    drawIndividus(tiles);
 });
 
 // Function to close the modal
@@ -52,3 +53,7 @@ socket.on("enterGameResponse", data =>{
         $("#ModalMessage").text(data.message);
     }
 });
+
+socket.on("toutlemondeestpret", ()=>{
+    toutlemondeachoisi=true;
+})

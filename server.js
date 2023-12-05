@@ -10,7 +10,7 @@ server.listen(8881, () => {
 });
 
 var games = {};
-
+var capacités = [""]
 app.get('/', (request, response) => {
     response.sendFile('menu/menu.html', { root: __dirname });
 });
@@ -38,31 +38,61 @@ function init_game(size_x, size_y) {
 
     let map = (CreateMapWFC(size_x, size_y));
     for (let i = 0; i < size_x; i++) {
-        let temp = []
+        let temp = [];
         for (let j = 0; j < size_y; j++) {
             let type = Math.random();
+            let tile = { "type": -1, "population": 0, "nourriture": false }
+            if (i == 0 && j == 0) {
+                tile.type = 10;
 
-            temp.push(
-                {
-                    "type": map[i][j],
-                    "population": 0
-                }
-            );
+            } else if (i == size_x - 1 && j == size_y - 1) {
+                tile.temp = 11
+            }
+            else {
+                tile.type = map[i][j]
+            }
+            temp.push(tile)
         }
         listHex.push(temp);
     }
     return listHex;
 }
 
+function deplacerIndividu(joueur, anciennePos, nouvellePos, gameId) {
+    games[gameId].tiles[anciennePos.x][anciennePos.y].population = 0;
+    games[gameId].tiles[nouvellePos.x][nouvellePos.y].population = joueur;
+}
+
+function choixMeillleurDeplacement(indiividu,) { }
+
+
 function createGame(size_x, size_y, maxPlayers) {
     const gameId = Math.floor(Math.random() * 10000);
+
     games[gameId] = {
         "players": [],
         "tiles": init_game(size_x, size_y),
         "maxPlayers": maxPlayers,
         "size_x": size_x,
-        "size_y": size_y
+        "size_y": size_y,
+
+        "individus_joueur1": [
+            {
+                'pos': { 'x': 0, 'y': 0 },
+                'nourriture': 10,
+                'soif': 10,
+                'envieDeSexe': false
+            },
+            {
+                position_x: 0,
+                'position_y': 0,
+                'nourriture': 10,
+                'soif': 10,
+                'envieDeSexe': false
+            }]
     };
+
+
     return gameId;
 }
 function isInBound(pos, size_x, size_y) {
@@ -82,9 +112,30 @@ function getNeighbors(pos, size_x, size_y) {
 };
 
 
+
 function isPosInArray(pos, array) {
     return array.some(item => item.x === pos.x && item.y === pos.y);
 }
+
+function meilleurChoixDeplacement(individu, espece, map) {
+
+    return pos;
+}
+
+function avancerDunTour(gameId) {
+    games[gameId].tour += 1;
+
+    for (joueur of joueurs){
+        for (individu of individus_joueur1) {
+            let newPos = meilleurChoixDeplacement(individu, games[gameId].espece_joueur1, games[gameId].tiles)
+            deplacerIndividu(joueur, individu.pos, newPos, gameId);
+        }
+    }
+
+    io.to(gameId).emit("tiles", games[gameId].tiles)
+}
+
+
 
 function getInReach(pos, size_x, size_y, range) {
     var f = [];
@@ -130,13 +181,14 @@ function resetTiles(gameId) {
 
 
 
-        io.emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
+        io.to(gameId).emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
     } else {
         console.error(`Game with ID ${gameId} not found or does not have tiles.`);
     }
 };
 
 io.on('connection', (socket) => {
+
     socket.on("newGame", data => {
         let gameId = createGame(data.size_x, data.size_y, data.maxPlayers);
 
@@ -146,6 +198,8 @@ io.on('connection', (socket) => {
                 "allowed": true
             });
     });
+
+
     socket.on("enterGame", data => {
         const gameId = data.gameId;
         const playerName = data.playerName;
@@ -229,16 +283,16 @@ io.on('connection', (socket) => {
             return;
         }
     })
+
     socket.on("tiles", gameId => {
         socket.emit("tiles", games[gameId].tiles);
     })
+
     socket.on("play", data => {
-        var result = getInReach(data.tile, games[data.gameId].size_x, games[data.gameId].size_y, data.range);
-        for (let tile of result) {
-            games[data.gameId].tiles[tile.x][tile.y].type = 55;
-        }
-        io.emit("tiles", games[data.gameId].tiles);
+        games[data.gameId].tiles[data.tile.x][data.tile.y].population=1;
+        io.to(data.gameId).emit("tiles", games[data.gameId].tiles);
     });
+
     socket.on("reset", gameId => {
         resetTiles(gameId);
     })
@@ -301,6 +355,16 @@ function botRight(pos) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 /*-------------------------GENERATION DE LA MAP----------------------------*/
 function calculateEntropy(probabilities) {
 
@@ -356,8 +420,8 @@ function getRandomChoiceWeighted(choices, weights) {
 
 function updateWeight(pos, initialWeight, tileset, final) {
 
-    let neighbors = getNeighbors(pos, final.length-1, final[0].length-1);
-    neighbors=shuffleArray(neighbors);
+    let neighbors = getNeighbors(pos, final.length - 1, final[0].length - 1);
+    neighbors = shuffleArray(neighbors);
     let updatedWeights = [0, 0, 0];
     let nbN = 0;
 
@@ -368,9 +432,8 @@ function updateWeight(pos, initialWeight, tileset, final) {
 
             switch (final[neighbor.x][neighbor.y]) {
                 case 0:
-                    if(numberOfSameTiles(0,neighbor,tileset,final)<2)
-                    {updatedWeights[0] = 0.7;}
-                    
+                    if (numberOfSameTiles(0, neighbor, tileset, final) < 2) { updatedWeights[0] = 0.7; }
+
                     updatedWeights[1] += 0.2;
                     updatedWeights[2] += 0.00;
                     break;
@@ -399,14 +462,14 @@ function updateWeight(pos, initialWeight, tileset, final) {
 
         // Calculate the average with the initial weights
 
-        let averageWeights = updatedWeights.map((weight, index) => (weight + (initialWeight[index] == -1 ? weight : initialWeight[index]*2)) / 2);
+        let averageWeights = updatedWeights.map((weight, index) => (weight + (initialWeight[index] == -1 ? weight : initialWeight[index] * 2)) / 2);
 
         tileset[pos.x][pos.y].probabilities = averageWeights;
     }
 }
 
 function numberOfSameTiles(type, pos, tileset, final) {
-    let neighbors = getNeighbors(pos, tileset.length-1 , tileset[0].length-1);
+    let neighbors = getNeighbors(pos, tileset.length - 1, tileset[0].length - 1);
     let res = 0;
     for (let neighbor of neighbors) {
         if (final[neighbor.x][neighbor.y] == type) {
@@ -421,18 +484,19 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
     let montains_chain = [30, 0.0, 0.00];
 
     if (numberOfSameTiles(type, pos, tileset, final) < 2) {
-        
+
         switch (relative) {
             case "topLeft": //on touche au voisin de en haut à gauche
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 0
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {//on test le voisin en bas à droite
-                            if (Math.random() < 0.33){
+                            if (Math.random() < 0.33) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -442,9 +506,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 2) {//on test les voisins opposés
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 2) {//on test les voisins opposés
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -454,14 +518,14 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
             case "topRight": //on touche au voisin de en haut à droite
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 0
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
-                            if (Math.random() < 0.33)
-                            {
+                            if (Math.random() < 0.33) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -471,9 +535,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -483,14 +547,14 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
             case "right": //on touche au voisin de droite
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 0
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 0 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
-                            if (Math.random() < 0.3)
-                            {
+                            if (Math.random() < 0.3) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -500,9 +564,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
-                            isInBound(botLeft(pos), final.length-1, final[0].length-1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
+                            isInBound(botLeft(pos), final.length - 1, final[0].length - 1) && final[botLeft(pos).x][botLeft(pos).y] === 2 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -512,14 +576,14 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
             case "botRight": //on touche au voisin de en bas à droite
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 0
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 0
                         ) {
-                            if (Math.random() < 0.33)
-                            {
+                            if (Math.random() < 0.33) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -529,9 +593,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
-                            isInBound(left(pos), final.length-1, final[0].length-1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
+                            isInBound(left(pos), final.length - 1, final[0].length - 1) && final[left(pos).x][left(pos).y] === 2) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -541,14 +605,14 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
             case "botLeft": //on touche au voisin de en bas à droite
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 0
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 0 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {
-                            if (Math.random() < 0.33)
-                            {
+                            if (Math.random() < 0.33) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -558,9 +622,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(topLeft(pos), final.length-1, final[0].length-1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 2) {//on test le voisin en bas à droite
+                        if (isInBound(topLeft(pos), final.length - 1, final[0].length - 1) && final[topLeft(pos).x][topLeft(pos).y] === 2 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 2) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -570,14 +634,14 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
             case "left": //on touche au voisin de en bas à droite
                 switch (type) {
                     case 0: //cas ou on vient de placer une tuile d'eau
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 0
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 0 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 0 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 0
                         ) {
-                            if (Math.random() < 0.33)
-                            {
+                            if (Math.random() < 0.33) {
                                 console.log(relative)
-                                return river_chance}
+                                return river_chance
+                            }
                         }
 
 
@@ -587,9 +651,9 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
                         break;
 
                     case 2: //cas ou on vient de placer une montagne
-                        if (isInBound(botRight(pos), final.length-1, final[0].length-1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
-                            isInBound(topRight(pos), final.length-1, final[0].length-1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
-                            isInBound(right(pos), final.length-1, final[0].length-1) && final[right(pos).x][right(pos).y] === 2) {//on test le voisin en bas à droite
+                        if (isInBound(botRight(pos), final.length - 1, final[0].length - 1) && final[botRight(pos).x][botRight(pos).y] === 2 ||
+                            isInBound(topRight(pos), final.length - 1, final[0].length - 1) && final[topRight(pos).x][topRight(pos).y] === 2 ||
+                            isInBound(right(pos), final.length - 1, final[0].length - 1) && final[right(pos).x][right(pos).y] === 2) {//on test le voisin en bas à droite
                             if (Math.random() < 0.33)
                                 return montains_chain
                         }
@@ -601,6 +665,7 @@ function calulateInitialWeight(relative, type, final, pos, tileset) { //augmente
     }
     return [-1, -1, -1];
 }
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -611,14 +676,14 @@ function shuffleArray(array) {
 
 function updateNeighbors(pos, tileset, final, type) {
 
-    let neighbors = getNeighbors(pos, final.length-1, final[0].length-1);
-    neighbors=shuffleArray(neighbors);
+    let neighbors = getNeighbors(pos, final.length - 1, final[0].length - 1);
+    neighbors = shuffleArray(neighbors);
     for (let neighbor of neighbors) {
         let initialWeight = [];
 
 
-        initialWeight = calulateInitialWeight(neighbor.relative,type,final,neighbor,tileset);
-        
+        initialWeight = calulateInitialWeight(neighbor.relative, type, final, neighbor, tileset);
+
 
         if (!(tileset[neighbor.x][neighbor.y].collapsed === true)) {
 
@@ -627,19 +692,19 @@ function updateNeighbors(pos, tileset, final, type) {
     }
 }
 
-
 function collapse(tileset, final) {
     let pos = getRandomChoice(findLowestEntropy(tileset));
     let type = getRandomChoiceWeighted(tileset[pos.x][pos.y].types, tileset[pos.x][pos.y].probabilities);
     final[pos.x][pos.y] = type;
     tileset[pos.x][pos.y].collapsed = true;
-    
+
 
     updateNeighbors(pos, tileset, final, type);
 
 
 
 }
+
 function isFullyCollapsed(final) {
     for (let row of final) {
         for (let elem of row) {
