@@ -37,72 +37,71 @@ function generateTiles() {
 };
 
 function drawHexagons(tiles) {
-
     var col = 0;
     console.log(r);
     var border_offset = r;
     d3.selectAll(".hexagon").remove();
-    for (let y in tiles) {
+    
+    tiles.forEach((row, y) => {
         var ofset_y = r;
         var rowIndex = 0;
 
-        for (let x in tiles[y]) {
+        row.forEach((tile, x) => {
             var d = "";
             var rowOffset = rowIndex % 2 === 1 ? 0 : hexagon[2][0];
             var ofset_x = col * 2 * hexagon[2][0] + rowOffset + border_offset;
 
-            for (let i = 0; i < hexagon.length; i++) {
-                let new_x = hexagon[i][0] + ofset_x;
-                let new_y = hexagon[i][1] + ofset_y;
+            hexagon.forEach(([hexX, hexY], i) => {
+                let new_x = hexX + ofset_x;
+                let new_y = hexY + ofset_y;
                 if (i === 0) {
-                    d += "M" + new_x + "," + new_y + " L";
+                    d += `M${new_x},${new_y} L`;
                 } else {
-                    d += new_x + "," + new_y + " ";
+                    d += `${new_x},${new_y} `;
                 }
-            }
+            });
 
             d += "Z";
 
             var color;
-            
-                switch (tiles[y][x].type) {
-                    case -1:
-                        color = "white";
-                        break;
-                    case 0:
-                        color = "#03adfc";
-                        break;
-                    case 1:
-                        color = "#2e7d22";
-                        break;
-                    case 10:
-                        color = "green";
-                        break;
-                    case 11:
-                        color = "purple";
-                        break;
-                    case 4:
-                        color = "red";
-                        break;
-                    case 5:
-                        color = "brown";
-                        break;
-                    case 6:
-                        color = "purple";
-                        break;
-                    default:
-                        color = "gray";
-                }
-            
-
+        
+            switch (tile.type) {
+                case -1:
+                    color = "white";
+                    break;
+                case 0:
+                    color = "#03adfc";
+                    break;
+                case 1:
+                    color = "#2e7d22";
+                    break;
+                case 10:
+                    color = "green";
+                    break;
+                case 11:
+                    color = "purple";
+                    break;
+                case 4:
+                    color = "red";
+                    break;
+                case 5:
+                    color = "brown";
+                    break;
+                case 6:
+                    color = "purple";
+                    break;
+                default:
+                    color = "gray";
+            }
+        
             drawHexagon(d, color, col, rowIndex);
 
             ofset_y += hexagon[2][1] - hexagon[0][1];
             rowIndex += 1;
-        }
+        });
 
         col += 1;
-    }
+    });
 }
 
 function createArea(w, h) {
@@ -144,7 +143,7 @@ function reset() {
     socket.emit("reset", gameId)
 }
 
-function drawIndividus(tiles) {
+function drawOverlay(tiles) {
     console.log('test');
     for (let col in tiles) {
         for (let row in tiles[col]) {
@@ -152,13 +151,15 @@ function drawIndividus(tiles) {
             if (tile.population) {
                 drawIndividu(col, row, tile.population);
             }
+            if (tile.nourriture){
+                drawNouriturre(col, row);
+            }
         }
     }
 }
 
 
 function drawIndividu(posx, posy, population) {
-    console.log('test',posx, posy)
     let color;
     switch (population) {
         case 0:
@@ -186,4 +187,8 @@ function drawIndividu(posx, posy, population) {
     .attr('cy',center_y)
     .attr('r', r/4)
     .attr('fill',color)
+}
+
+function drawNouriturre(posx, posy) {
+    return;
 }

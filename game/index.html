@@ -6,10 +6,15 @@
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="gameFile/socketFunctions.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="gameFile/gameLogic.js"></script>
     <script src="gameFile/main.js"></script>
     <link rel="stylesheet" type="text/css" href="http://localhost:8881/gameFile/modal.css">
     <link rel="stylesheet" type="text/css" href="http://localhost:8881/gameFile/index.css">
+
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/base.css">
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/components.css">
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/utilities.css">
 </head>
 
 <body>
@@ -35,15 +40,13 @@
             <label id="ModalMessage"></label>
         </div>
     </div>
-    <div id="joueurs">
-        Joueurs : <label id="listeJoueurs"></label> <br />
-        Votre nom : <label id="nom"></label>
+    <div class="flex flex-row m-8" >
+        <div id="joueurs" class="text-white flex flex-row">
+            <h1 class=" text-xl">Joueurs : </h1>
+            <label id="listeJoueurs" class="ml-2 text-xl" ></label> 
+        </div>
         <button id="generateTIles" onclick="generateTiles()">Generer</button>
         <button id="generateTIles" onclick="reset()">REset</button>
-        <div>
-            <input type="range" id="range" name="range" min="1" max="10" />
-            <label for="range">Portée</label>
-        </div>
     </div>
     <div id="playarea" class="playarea">
 

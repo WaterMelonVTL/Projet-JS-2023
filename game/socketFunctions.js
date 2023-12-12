@@ -43,7 +43,7 @@ socket.on('gameInfo', data => {
 socket.on('tiles', tiles => {
     console.log(tiles);
     drawHexagons(tiles);
-    drawIndividus(tiles);
+    drawOverlay(tiles);
 });
 
 // Function to close the modal

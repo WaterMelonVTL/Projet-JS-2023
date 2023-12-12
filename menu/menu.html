@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,39 +8,100 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="menuFile/menu.js"></script>
     <link rel="stylesheet" type="text/css" href="http://localhost:8881/menuFile/menu.css">
+
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/base.css">
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/components.css">
+    <link rel="stylesheet" href="http://localhost:8881/files/tailwindcss/utilities.css">
+
+
+
+
 </head>
+
 <body>
-    <div class="menu">
-        <h1 class="title">LE JEU DE LA VIE</h1>
-        <div id="nameInput" class="name">
+    <div class="flex w-screen h-[90vh] backdrop-blur-md border-y-4 flex-col items-center">
+        <h1 class="text-[10rem]  text-white tracking-tight font-body font-bold drop-shadow-lg">LE JEU DE LA VIE <span class="text-3xl tracking-normal">(sous stéroides)</span></h1>
+        <div id="nameInput" class="w-screen items-center">
             Name: <input type="text" id="playerNameInput" placeholder="Enter your name" />
             <button onclick="changeName()">Set Name</button>
-            
+
         </div>
-        <div id="greeting" class="greetings" ></div>
-        <div class="select">
-            <div class="create">
-                
-                <div>
-                    <input type="range" id="nbPlayer" name="nbPlayer" min="1" max="4" />
-                    <label for="nbPlayer">Nombre de joueurs</label>
-        
+        <div id="greeting" class="w-screen text-center text-5xl text-white"></div>
+        <div class="w-[90vw]  flex flex-row justify-around mt-24 max-w-[100rem]">
+            <div class="p-8 border-4 rounded-md bg-white flex flex-col items-center">
+
+                <h1 class="text-4xl font-bold text-center">Nouvelle partie :</h1>
+
+                <div class="flex flex-col mt-8 items-center">
+
+                    <label for="nbPlayer" class="text-black font-mid text-2xl">Nombre de joueurs</label>
+
+                    <div class="flex flex-row ml-4 mt-2 items-center">
+                        <input type="radio" id="nbPlayer1" name="nbPlayer" value="1" class="ml-2 ">
+                        <label for="nbPlayer1" class="text-xl ml-1 mr-2">1</label>
+
+                        <input type="radio" id="nbPlayer2" name="nbPlayer" value="2" class="ml-2 " checked>
+                        <label for="nbPlayer2" class="text-xl ml-1 mr-2">2</label>
+
+                        <input type="radio" id="nbPlayer3" name="nbPlayer" value="3" class="ml-2 ">
+                        <label for="nbPlayer3" class="text-xl ml-1 mr-2">3</label>
+
+                        <input type="radio" id="nbPlayer4" name="nbPlayer" value="4" class="ml-2 ">
+                        <label for="nbPlayer4" class="text-xl ml-1 mr-2">4</label>
+                    </div>
+
                 </div>
-                <div>
-                    <input type="range" id="size" name="size" min="5" max="50" />
-                    <label for="size">Taille de la carte</label>
+
+                <div class="flex flex-col mt-4 items-center">
+
+                    <label for="size" class="text-black font-mid text-2xl">Taille de la carte</label>
+
+                    <div class="flex flex-row w-[25rem] items-center justify-center mt-2">
+                        <h4 class="mr-2 text-xl text-gray-600 font-low">longueur :</h4>
+                        <input type="range" id="size-x" name="size_y" min="5" max="50" />
+                        <h1 id="value-longueur" class="ml-2 text-xl font-low text-gray-600"></h1>
+                    </div>
+
+                    <div class="flex flex-row w-[25rem] items-center justify-center">
+                        <h4 class="mr-5 text-xl text-gray-600 font-low">largeur :</h4>
+                        <input type="range" id="size-y" name="size_x" min="5" max="50" />
+                        <h1 id="value-largeur" class="ml-2 text-xl font-low text-gray-600"></h1>
+                    </div>
+
                 </div>
-                <button onclick="createGame()">CREER UNE PARTIE</button>
+
+                <button onclick="createGame()"
+                    class="self-center w-60 h-14 text-xl font-bold border-2 border-gray-700 rounded-md mt-8 hover:scale-105 hover:bg-blue-500 hover:text-white transition-all duration-100">CREER</button>
+
             </div>
-            <div class="join">
-                <input type="text" id="gameId" placeholder="Enter the gameId"/> <!-- here you enter the game id -->
-                <button id="joinButton" onclick="joinGame()">Rejoindre</button>
-                
+
+
+            <div class="p-8 border-4 rounded-md bg-white flex flex-col items-center h-full relative">
+                <h1 class="text-4xl font-bold text-center mb-8">Rejoindre :</h1>
+                <label id="messageServeur" class="text-red-800 absolute translate-y-[3rem]"></label>
+                <input type="text" id="gameId" placeholder="Entrer l'ID de la partie"
+                    class="text-center  rounded-md text-xl" />
+
+                <h1 class="text-xl bg-white z-10 ">ou</h1>
+                <div class="translate-y-[-11px] w-full h-0.5 bg-black"></div>
+                <h1 class="text-xl text-gray-800">Parties en cours :</h1>
+
+                <div class="overflow-y-auto h-[9rem]  w-[25rem]">
+                    <div id="running-games" class="   flex flex-col items-center">
+                    </div>
+                </div>
+
+                <button id="joinButton"
+                    class="self-center w-60 h-14 text-xl font-bold border-2 border-gray-700 rounded-md  hover:scale-105 hover:bg-blue-500 hover:text-white transition-all duration-100 mt-4 "
+                    onclick="joinGame()">Rejoindre</button>
+
             </div>
         </div>
-        <label id="messageServeur"></label>
+
     </div>
 </body>
+
 </html>

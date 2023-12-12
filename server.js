@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const path = require('path');
 const http = require('http');
 const server = http.createServer(app);
 const io = require("socket.io")(server);
@@ -11,9 +12,8 @@ server.listen(8881, () => {
 
 var games = {};
 var capacités = [""]
-app.get('/', (request, response) => {
-    response.sendFile('menu/menu.html', { root: __dirname });
-});
+app.use('/files', express.static(path.join(__dirname, 'node_modules')));
+
 
 app.get('/game', (request, response) => {
     const gameId = request.query.gameId;
@@ -25,13 +25,21 @@ app.get('/game', (request, response) => {
 });
 
 app.get('/gameFile/:file', (request, response) => {
+
     const file = request.params.file;
     response.sendFile("/game/" + file, { root: __dirname });
 });
 app.get('/menuFile/:file', (request, response) => {
+
     const file = request.params.file;
     response.sendFile("/menu/" + file, { root: __dirname });
 });
+
+app.get('/', (request, response) => {
+
+    response.sendFile('menu/menu.html', { root: __dirname });
+});
+
 
 function init_game(size_x, size_y) {
     var listHex = [];
@@ -41,12 +49,12 @@ function init_game(size_x, size_y) {
         let temp = [];
         for (let j = 0; j < size_y; j++) {
             let type = Math.random();
-            let tile = { "type": -1, "population": 0, "nourriture": false }
+            let tile = { "type": -1, "population": 0, "nourriture": true }
             if (i == 0 && j == 0) {
                 tile.type = 10;
 
             } else if (i == size_x - 1 && j == size_y - 1) {
-                tile.temp = 11
+                tile.type = 11
             }
             else {
                 tile.type = map[i][j]
@@ -92,7 +100,7 @@ function createGame(size_x, size_y, maxPlayers) {
             }]
     };
 
-
+    
     return gameId;
 }
 function isInBound(pos, size_x, size_y) {
@@ -197,6 +205,7 @@ io.on('connection', (socket) => {
                 "gameId": gameId,
                 "allowed": true
             });
+        io.emit("newGame",{gameId: gameId, game:games[gameId]});
     });
 
 
@@ -212,7 +221,7 @@ io.on('connection', (socket) => {
                 });
 
             socket.join(gameId);
-
+                
             return;
         }
 
@@ -232,8 +241,8 @@ io.on('connection', (socket) => {
         // Add the player to the game
 
         games[gameId].players.push(playerName);
+        io.emit("playerJoined", {gameId:gameId, maxPlayers:games[gameId].maxPlayers, numberOfPlayers:games[gameId].players.length, size_x:games[gameId].size_x, size_y:games[gameId].size_y});
 
-        // Emit 'playerJoined' to all clients in the game
         io.to(gameId)
             .emit('playerEntered',
                 {
@@ -296,6 +305,10 @@ io.on('connection', (socket) => {
 
     socket.on("reset", gameId => {
         resetTiles(gameId);
+    });
+
+    socket.on("getGames", ()=>{
+        socket.emit("getGamesResponse", games)
     })
 
 });
