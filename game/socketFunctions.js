@@ -1,6 +1,3 @@
-
-
-
 var socket = io();
 
 socket.on('play', numJoueur => {
@@ -66,4 +63,18 @@ socket.on("enterGameResponse", data => {
 
 socket.on("toutlemondeestpret", () => {
     toutlemondeachoisi = true;
+})
+
+socket.on("currentTurn", currentTurn => {
+    document.getElementById("tourActuel").innerText = currentTurn;
+});
+
+socket.on("pret", ()=>{
+    $("#readyMessage").text("vous etes pret");
+    $("#readyMessage").show();
+})
+
+socket.on("erreurAttribut", message =>{
+    $("#readyMessage").text(message);
+    $("#readyMessage").show();
 })

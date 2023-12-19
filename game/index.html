@@ -19,8 +19,29 @@
 
 <body>
     <div id="CreationEspece">
-        
-
+        <h2>Attributs</h2>
+        <div id="reproduction">
+            <label>Reproduction:</label>
+            <input id="reproductionPoints" type="number" default="1"></input>
+            <button onclick="increaseAttribute('reproduction')">+</button>
+            <button onclick="decreaseAttribute('reproduction')">-</button>
+        </div>
+        <div id="vitesse">
+            <label>Vitesse:</label>
+            <input id="vitessePoints" type="number" default="1">1</input>
+            <button onclick="increaseAttribute('vitesse')">+</button>
+            <button onclick="decreaseAttribute('vitesse')">-</button>
+        </div>
+        <div id="vision">
+            <label>Vision:</label>
+            <input id="visionPoints" type="number" default="1">1</input>
+            <button onclick="increaseAttribute('vision')">+</button>
+            <button onclick="decreaseAttribute('vision')">-</button>
+        </div>
+        <button id="submitAttributes" onclick="submitAttributes()">Prêt</button> <br />
+        <button id="verificationJoueurPret" onclick="verificationJoueurPret()">Lancer la partie</button> <br />
+    <p id="readyMessage" style="display: none;">Vous êtes prêt!</p>
+    <p id="test" style="display: none;">La partie va débuter!</p>
     </div>
     <div id="myModal" class="modal">
         <div class="modal-content">
@@ -47,10 +68,15 @@
         </div>
         <button id="generateTIles" onclick="generateTiles()">Generer</button>
         <button id="generateTIles" onclick="reset()">REset</button>
+        <div>
+            <input type="range" id="range" name="range" min="1" max="10" />
+            <label for="range">Portée</label>
+        </div>
     </div>
+    <p> Tour actuel : <span id="tourActuel">0</span></p>
     <div id="playarea" class="playarea">
-
     </div>
+    <p id="test" style="display: none;">La partie va débuter!</p>
     <hr />
     Message du serveur : <label id="messageServeur"></label>
     <hr />
