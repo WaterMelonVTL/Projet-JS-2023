@@ -49,15 +49,18 @@ function init_game(size_x, size_y) {
         let temp = [];
         for (let j = 0; j < size_y; j++) {
             let type = Math.random();
-            let tile = { "type": -1, "population": 0, "nourriture": true }
-            if (i == 0 && j == 0) {
-                tile.type = 10;
-
-            } else if (i == size_x - 1 && j == size_y - 1) {
-                tile.type = 11
-            }
-            else {
-                tile.type = map[i][j]
+            let tile = { "type": -1, "population": 0, "nourriture": false };
+            if (type < 0.1) {
+                tile.type = 5;
+                tile.nourriture = true;
+            } else {
+                if (i == 0 && j == 0) {
+                    tile.type = 10;
+                } else if (i == size_x - 1 && j == size_y - 1) {
+                    tile.type = 11;
+                } else {
+                    tile.type = map[i][j];
+                }
             }
             temp.push(tile)
         }
@@ -65,6 +68,7 @@ function init_game(size_x, size_y) {
     }
     return listHex;
 }
+
 
 function deplacerIndividu(joueur, anciennePos, nouvellePos, gameId) {
     games[gameId].tiles[anciennePos.x][anciennePos.y].population = 0;
@@ -76,31 +80,19 @@ function choixMeillleurDeplacement(indiividu,) { }
 
 function createGame(size_x, size_y, maxPlayers) {
     const gameId = Math.floor(Math.random() * 10000);
-
     games[gameId] = {
         "players": [],
         "tiles": init_game(size_x, size_y),
         "maxPlayers": maxPlayers,
         "size_x": size_x,
         "size_y": size_y,
+        "currentPlayer": 0, // Indique quel joueur doit jouer
+        "currentTour": 0,
+        "individus": [],
+        "attributs": []
 
-        "individus_joueur1": [
-            {
-                'pos': { 'x': 0, 'y': 0 },
-                'nourriture': 10,
-                'soif': 10,
-                'envieDeSexe': false
-            },
-            {
-                position_x: 0,
-                'position_y': 0,
-                'nourriture': 10,
-                'soif': 10,
-                'envieDeSexe': false
-            }]
     };
 
-    
     return gameId;
 }
 function isInBound(pos, size_x, size_y) {
@@ -125,22 +117,165 @@ function isPosInArray(pos, array) {
     return array.some(item => item.x === pos.x && item.y === pos.y);
 }
 
+function creerIndividu(gameId, joueur, nombre) {
+    let game = games[gameId];
+    let joueurId = game.joueurs.indexOf(joueur);
+    let pos = game.posBase[joueurId];
+    for (let i = 0; i < nombre; i++) {
+        let temp = {
+            'nourriture': 10,
+            'soif': 10,
+            'pos': pos,
+            'vision': game.attributs[joueurId].vision,
+            'reproduction': game.attributs[joueurId].reproduction,
+            'vitesse': game.attributs[joueurId].vitesse
+        };
+        game.individus[joueurId].push(temp);
+    }
+
+
+}
+
 function meilleurChoixDeplacement(individu, espece, map) {
 
     return pos;
 }
 
-function avancerDunTour(gameId) {
-    games[gameId].tour += 1;
+function creerIndividu(gameId, joueur, nombre) {
+    let game = games[gameId];
+    let joueurId = game.joueurs.indexOf(joueur);
+    let pos = game.posBase[joueurId];
+    for (let i = 0; i < nombre; i++) {
+        let temp = {
+            'nourriture': 10,
+            'soif': 10,
+            'pos': pos,
+            'vision': game.attributs[joueurId].vision,
+            'reproduction': game.attributs[joueurId].reproduction,
+            'vitesse': game.attributs[joueurId].vitesse
+        };
+        game.individus[joueurId].push(temp);
+    }
 
-    for (joueur of joueurs){
+
+}
+
+function trouverMeilleurChemin(depart, carte, vision) {
+    const visite = new Set();
+    const file = [{ position: depart, distance: 0 }];
+
+    while (file.length > 0) {
+        const { position, distance } = file.shift();
+
+        if (distance > vision) {
+            continue; // Ignorer les positions au-delà de la portée de vision
+        }
+
+        const voisins = getVoisins(position, carte[0].length, carte.length);
+        for (const voisin of voisins) {
+            const { x, y } = voisin;
+
+            const cleVoisin = `${x}-${y}`;
+            if (!visite.has(cleVoisin) && estDeplacementValide(position, voisin, carte)) {
+                visite.add(cleVoisin);
+                file.push({ position: { x, y }, distance: distance + 1 });
+
+                if (carte[y][x].nourriture) {
+                    // Nous avons trouvé un chemin valide vers une case avec de la nourriture
+                    return { x, y, distance: distance + 1 };
+                } else if (carte[y][x].type === 0) {
+                    // De l'eau a été trouvée sur le chemin
+                    return { x, y, distance: distance + 1 };
+                }
+            }
+        }
+    }
+
+    // Si aucune nourriture ni eau n'est trouvée, essayez de vous déplacer vers l'avant
+    const voisinAvant = getVoisinDevant(depart, carte);
+    if (voisinAvant && !visite.has(`${voisinAvant.x}-${voisinAvant.y}`)) {
+        return { x: voisinAvant.x, y: voisinAvant.y, distance: vision + 1 };
+    }
+
+    return null; // Retourner null s'il n'y a pas de chemin vers la nourriture, l'eau ou le déplacement vers l'avant dans la portée de vision
+}
+
+function deplacerJoueur(gameId) {
+    const game = games[gameId];
+
+    for (let joueur in game.players)
+        for (let individu of game.individus[joueur]) {
+            // Utilisez votre logique pour choisir la meilleure direction ici
+            const nouvellePos = trouverMeilleurChemin(depart, map, vision, pos);
+
+
+            if (nouvellePos) {
+                // Récupérez la case vers laquelle l'individu se déplace
+                const nouvelleCase = game.tiles[nouvellePos.x][nouvellePos.y];
+
+                // Déplacez l'individu
+                deplacerIndividu(joueur, individu.pos, nouvellePos, gameId);
+
+
+
+                // Éventuellement, émettez un événement pour informer les clients du déplacement
+                io.to(gameId).emit("individuDeplace", { joueur, individu, nouvellePos });
+            }
+        }
+}
+
+
+
+
+function getVoisinDevant(pos, carte) {
+    const posAvant = { x: pos.x, y: pos.y - 1 }; // En supposant que vers l'avant soit vers le haut
+    return estDeplacementValide(pos, posAvant, carte) ? posAvant : null;
+}
+
+
+function nextTurn(gameId) {
+    const maxPlayers = games[gameId].maxPlayers;
+    games[gameId].currentPlayer = (games[gameId].currentPlayer + 1) % maxPlayers;
+    games[gameId].tour += 1;
+}
+
+
+function avancerDunTour(gameId) {
+
+    for (joueur of joueurs) {
         for (individu of individus_joueur1) {
             let newPos = meilleurChoixDeplacement(individu, games[gameId].espece_joueur1, games[gameId].tiles)
             deplacerIndividu(joueur, individu.pos, newPos, gameId);
         }
     }
+    nextTurn(gameId);
 
-    io.to(gameId).emit("tiles", games[gameId].tiles)
+    io.to(gameId).emit("tiles", games[gameId].tiles);
+    io.to(gameId).emit("currentTurn", games[gameId].tour);
+}
+
+
+
+function testAttribut(attribute, gameId) {
+    const game = games[gameId];
+
+    // Check if the game exists and has an attributes array
+    if (game && Array.isArray(game.attributes)) {
+        // Check if any existing attribute has the same values
+        const isAttributeTaken = game.attributes.some(existingAttribute => (
+            existingAttribute.vitesse === attribute.vitesse &&
+            existingAttribute.reproduction === attribute.reproduction &&
+            existingAttribute.vision === attribute.vision
+        ));
+
+        // Return false if any attribute has the same values, true otherwise
+        return !isAttributeTaken;
+        
+    } else {
+        // Handle the case where game or its attributes array is not defined
+        console.error(`Invalid game or attributes for gameId: ${gameId}`);
+        return false;
+    }
 }
 
 
@@ -241,8 +376,10 @@ io.on('connection', (socket) => {
         // Add the player to the game
 
         games[gameId].players.push(playerName);
-        io.emit("playerJoined", {gameId:gameId, maxPlayers:games[gameId].maxPlayers, numberOfPlayers:games[gameId].players.length, size_x:games[gameId].size_x, size_y:games[gameId].size_y});
+        games[gameId].attributs.push({});
+        games[gameId].individus.push([]);
 
+        // Emit 'playerJoined' to all clients in the game
         io.to(gameId)
             .emit('playerEntered',
                 {
@@ -307,8 +444,19 @@ io.on('connection', (socket) => {
         resetTiles(gameId);
     });
 
-    socket.on("getGames", ()=>{
+    /*socket.on("getGames", ()=>{
         socket.emit("getGamesResponse", games)
+    })*/
+
+    socket.on("submitAttribute", data => {
+        let idJoueur = games[data.gameId].players.indexOf(data.joueur);
+        if (testAttribut()) {
+            games[data.gameId].attributs[idJoueur] = creerAttributs(data.vitesse, data.vision, data.reproduction);
+            creerIndividu(data.gameId, data.joueur, 2);
+            socket.emit("pret");
+        } else {
+            socket.emit("erreurAttribut", "Attributs déja prits");
+        }
     })
 
 });
