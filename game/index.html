@@ -18,65 +18,72 @@
 </head>
 
 <body>
-    <div id="CreationEspece">
-        <h2>Attributs</h2>
-        <div id="reproduction">
-            <label>Reproduction:</label>
-            <input id="reproductionPoints" type="number" default="1"></input>
-            <button onclick="increaseAttribute('reproduction')">+</button>
-            <button onclick="decreaseAttribute('reproduction')">-</button>
+    <div id="CreationEspece" class=" text-white w-screen h-screen bg-black flex flex-col items-center justify-center">
+        <h2 class="text-3xl font-bold">Selectionnez vos attributs</h2>
+        <h2 class="text-2xl mt-8 font-bold"> Vos points : <span id="totPts">10</span></h2>
+        <div id="reproduction" class="mt-4 text-2xl flex flex-row">
+            <h1>Reproduction:</h1>
+            <h1 id="reproduction-pts" class="ml-2 ">0</h1>
+            <button onclick="decreaseAttribute('reproduction')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-4">-</button>
+            <button onclick="increaseAttribute('reproduction')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-2">+</button>
+            
         </div>
-        <div id="vitesse">
-            <label>Vitesse:</label>
-            <input id="vitessePoints" type="number" default="1">1</input>
-            <button onclick="increaseAttribute('vitesse')">+</button>
-            <button onclick="decreaseAttribute('vitesse')">-</button>
+        <div id="vitesse" class="mt-4 text-2xl flex flex-row">
+            <h1>Vitesse:</h1>
+            <h1 id="vitesse-pts" class="ml-2 ">0</h1>
+            <button onclick="decreaseAttribute('vitesse')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-4">-</button>
+            <button onclick="increaseAttribute('vitesse')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-2">+</button>
+            
         </div>
-        <div id="vision">
-            <label>Vision:</label>
-            <input id="visionPoints" type="number" default="1">1</input>
-            <button onclick="increaseAttribute('vision')">+</button>
-            <button onclick="decreaseAttribute('vision')">-</button>
+        <div id="vision" class="mt-4 text-2xl flex flex-row">
+            <h1>Vision:</h1>
+            <h1 id="vision-pts" class="ml-2 ">0</h1>
+            <button onclick="decreaseAttribute('vision')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-4">-</button>
+            <button onclick="increaseAttribute('vision')" class="w-10 h-10 rounded-md border-2 border-white text-center flex items-center justify-center ml-2">+</button>
+            
         </div>
-        <button id="submitAttributes" onclick="submitAttributes()">Prêt</button> <br />
-        <button id="verificationJoueurPret" onclick="verificationJoueurPret()">Lancer la partie</button> <br />
-    <p id="readyMessage" style="display: none;">Vous êtes prêt!</p>
-    <p id="test" style="display: none;">La partie va débuter!</p>
+        <button id="submitAttributes" class="w-40 h-20 rounded-md border-2 border-white text-3xl font-bold hover:bg-blue-500 hover:scale-105 cursor-pointer mt-8 transition-all duration-500" onclick="submitAttributes()">Prêt</button> <br />
+
+        <p id="readyMessage" style="display: none;">Vous êtes prêt!</p>
+        <p id="test" style="display: none;">La partie va débuter!</p>
     </div>
+
+    <button id="startGameButton" class=" p-4 text-2xl text-white border-2 rounded-md border-white" onclick="startGame()">Lancer la partie</button> <br />
+
     <div id="myModal" class="modal">
         <div class="modal-content">
 
             <p id="welcomeMessage"></p>
             <div id="nameContent" style="display: none; " class="nameInput">
-                <h1 >
+                <h1>
                     Vous devez définir votre nom pour rejoindre une partie
                 </h1>
-                <input type="text" id="nameInput"/>
+                <input type="text" id="nameInput" />
                 <button id="nameButton" onclick="defPname()">définir</button>
             </div>
             <div class="buttons">
-                <button id="enterButton" onclick="enterGame()" class='button'><h1>Enter</h1></button>
-                <button id="spectateButton" onclick="closeModal()" class='button'><h1>Spectate</h1></button>
+                <button id="enterButton" onclick="enterGame()" class='button'>
+                    <h1>Enter</h1>
+                </button>
+                <button id="spectateButton" onclick="closeModal()" class='button'>
+                    <h1>Spectate</h1>
+                </button>
             </div>
             <label id="ModalMessage"></label>
         </div>
     </div>
-    <div class="flex flex-row m-8" >
+
+    <div class="flex flex-row m-8 text-white">
         <div id="joueurs" class="text-white flex flex-row">
             <h1 class=" text-xl">Joueurs : </h1>
-            <label id="listeJoueurs" class="ml-2 text-xl" ></label> 
-        </div>
-        <button id="generateTIles" onclick="generateTiles()">Generer</button>
-        <button id="generateTIles" onclick="reset()">REset</button>
-        <div>
-            <input type="range" id="range" name="range" min="1" max="10" />
-            <label for="range">Portée</label>
+            <label id="listeJoueurs" class="ml-2 text-xl"></label>
         </div>
     </div>
-    <p> Tour actuel : <span id="tourActuel">0</span></p>
+    <h1 class="text-white"> Tour : <span id="tourActuel">0</span></h1 >
+
     <div id="playarea" class="playarea">
+
     </div>
-    <p id="test" style="display: none;">La partie va débuter!</p>
     <hr />
     Message du serveur : <label id="messageServeur"></label>
     <hr />

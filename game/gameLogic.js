@@ -192,7 +192,17 @@ function drawIndividu(posx, posy, population) {
 }
 
 function drawNouriturre(posx, posy) {
-    return;
+    let ofset_y=hexagon[2][1] - hexagon[0][1];
+    let center_x= posx * 2 * hexagon[2][0] + (posy % 2 === 0 ? 2 : 1) * hexagon[2][0] + (-hexagon[2][0] + r);
+    let center_y=(posy * ofset_y ) + r;
+    d3.select('svg')
+    .append('circle')
+    .attr('cx',center_x)
+    .attr('cy',center_y)
+    .attr('r', r/2)
+    .attr('stroke',"red")
+    .attr('stroke-width',r/10)
+    .attr('fill',"none")
 }
 
 function drawIndividus(tiles) {

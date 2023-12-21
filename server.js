@@ -49,10 +49,10 @@ function init_game(size_x, size_y) {
         let temp = [];
         for (let j = 0; j < size_y; j++) {
             let type = Math.random();
-            let tile = { "type": -1, "population": 0, "nourriture": false, pos: { x: i, y: j } };
-            if (type < 0.1) {
-                tile.type = 5;
+            let tile = { "type": -1, "population": 0, "nourriture": false, pos: { x: i, y: j }, "count": 0 };
+            if (type < 0.1 && map[i][j] == 1) {
                 tile.nourriture = true;
+                tile.type = 1;
             } else {
                 if (i == 0 && j == 0) {
                     tile.type = 10;
@@ -70,24 +70,23 @@ function init_game(size_x, size_y) {
 }
 
 
-function deplacerIndividu(joueur, anciennePos, nouvellePos, gameId, individu) {
+function deplacerIndividu(individu, nouvellePos, gameId) {
+    let anciennePos = individu.pos;
     individu.pos = nouvellePos;
     games[gameId].tiles[anciennePos.x][anciennePos.y].population = 0;
-    games[gameId].tiles[nouvellePos.x][nouvellePos.y].population = joueur;
+    games[gameId].tiles[nouvellePos.x][nouvellePos.y].population = games[gameId].players[individu.parent].number;
 }
 
-function createGame(size_x, size_y, maxPlayers) {
+function createGame(size_x, size_y, maxPlayers,creator) {
     const gameId = Math.floor(Math.random() * 10000);
     games[gameId] = {
-        "players": [],
+        "players": {},
         "tiles": init_game(size_x, size_y),
         "maxPlayers": maxPlayers,
         "size_x": size_x,
         "size_y": size_y,
-        "currentPlayer": 0, // Indique quel joueur doit jouer
+        "createur": creator,
         "currentTour": 0,
-        "individus": [],
-        "attributs": []
 
     };
 
@@ -95,7 +94,7 @@ function createGame(size_x, size_y, maxPlayers) {
 }
 function isInBound(pos, size_x, size_y) {
 
-    return (pos.x >= 0 && pos.x < size_x && pos.y >= 0 && pos.y < size_y)
+    return (pos.x >= 0 && pos.x < size_x  && pos.y >= 0 && pos.y < size_y)
 }
 
 function getNeighbors(pos, size_x, size_y) {
@@ -105,7 +104,7 @@ function getNeighbors(pos, size_x, size_y) {
     isInBound(right(pos), size_x, size_y) ? NB.push({ 'x': right(pos).x, 'y': right(pos).y, 'relative': 'right' }) : null;
     isInBound(botRight(pos), size_x, size_y) ? NB.push({ 'x': botRight(pos).x, 'y': botRight(pos).y, 'relative': 'botRight' }) : null;
     isInBound(botLeft(pos), size_x, size_y) ? NB.push({ 'x': botLeft(pos).x, 'y': botLeft(pos).y, 'relative': 'botLeft' }) : null;
-    isInBound(left(pos), size_x, size_y) ? NB.push({ 'x': botLeft(pos).x, 'y': botLeft(pos).y, 'relative': 'left' }) : null;
+    isInBound(left(pos), size_x, size_y) ? NB.push({ 'x': left(pos).x, 'y': left(pos).y, 'relative': 'left' }) : null;
     return NB;
 };
 
@@ -115,50 +114,48 @@ function isPosInArray(pos, array) {
     return array.some(item => item.x === pos.x && item.y === pos.y);
 }
 
-function creerIndividu(gameId, joueur, nombre) {
+function creerIndividu(gameId, player, nombre) {
     let game = games[gameId];
-    let joueurId = game.joueurs.indexOf(joueur);
-    let pos = game.posBase[joueurId];
+    let pos = player.posBase;
+    let joueurId = player.name;
     for (let i = 0; i < nombre; i++) {
         let temp = {
-            'nourriture': 10,
+            'origine': pos,
+            'satiété': 10,
             'soif': 10,
             'pos': pos,
-            'vision': game.attributs[joueurId].vision,
-            'reproduction': game.attributs[joueurId].reproduction,
-            'vitesse': game.attributs[joueurId].vitesse,
+            'vision': game.players[joueurId].attributs.vision,
+            'reproduction': game.players[joueurId].attributs.reproduction,
+            'vitesse': game.players[joueurId].attributs.vitesse,
             'mode': ['explore'],
-            'file': []
+            'need': [],
+            'file': [],
+            'canReproduce': false,
+            'reproduceCooldown': 0,
+            'moveTurns': 0,
+            'hasMoved': 0,
+            'parent': joueurId,
+            'id': game.players[joueurId].individus.length + 1,
         };
-        game.individus[joueurId].push(temp);
+        game.players[joueurId].individus.push(temp);
     }
-
-
 }
 
-function meilleurChoixDeplacement(individu, espece, map) {
-
-    return pos;
-}
-
-
-
-function trouverMeilleurChemin(depart, carte, vision) {
-
-}
-
-function getInRange(pos, range) {
+function getInRange(pos, range, gameId) {
     let positions = [pos];
 
-    for (let i = 1; i <= range; i++) {
-        let neighbors = getNeighbors(pos, games[gameId].size_x, games[gameId].size_y);
-        neighbors.forEach((neighbor) => {
-            if (!isPosInArray(neighbor, positions)) {
-                positions.push(neighbor);
-            }
+    for (let i = 0; i < range; i++) {
+        let newPositions = [];
+        positions.forEach((position) => {
+            let neighbors = getNeighbors(position, games[gameId].size_x, games[gameId].size_y);
+            neighbors.forEach((neighbor) => {
+                if (!isPosInArray(neighbor, positions) && !isPosInArray(neighbor, newPositions)) {
+                    newPositions.push(neighbor);
+                }
+            });
         });
+        positions = positions.concat(newPositions);
     }
-
 
     return positions;
 }
@@ -201,22 +198,26 @@ function convertPosToValidTiles(positions, gameId, player) {
     return validTiles;
 }
 
-function hasNourritureInVision(pos, range, gameId) {
-    let positions = getInRange(pos, range);
-    let tiles = convertPosToTiles(positions, gameId);
 
-    return tiles.some(tile => tile.nourriture);
-}
 
 function getValidNeighbors(pos, gameId) {
+
     let game = games[gameId];
+
     let neighbors = getNeighbors(pos, game.size_x, game.size_y);
-    neighbors = neighbors.filter(neighbor => game.tiles[neighbor.x][neighbor.y].type !== 2);
+
+    neighbors = neighbors.filter(neighbor => {
+
+        return game.tiles[neighbor.x][neighbor.y].type !== 2});
+
     return neighbors;
 }
 
 
-function getBestPath(pos1, pos2, tileset, gameId) {
+function getBestPath(pos1, pos2, gameId) {
+    if (pos1.x == pos2.x && pos1.y == pos2.y) {
+        return [pos1];
+    }
     // Define the heuristic function h(n)
     const h = (pos) => Math.abs(pos.x - pos2.x) + Math.abs(pos.y - pos2.y);
 
@@ -271,129 +272,323 @@ function getBestPath(pos1, pos2, tileset, gameId) {
     }
 
     // If the function reaches this point, that means there's no valid path from pos1 to pos2
-    console.log("No valid path found.");
+    console.log("No valid path found from " + JSON.stringify(pos1) + " to " + JSON.stringify(pos2) + ".");
     return null;
 }
 
+function getBestPos(individu, gameId) {
+    let map = games[gameId].tiles;
+    const canSee = getInRange(individu.pos, individu.vision, gameId);
+
+    let empty = canSee.filter(pos => {
+        return map[pos.x][pos.y].population == 0 && map[pos.x][pos.y].type != 2});
+
+    if (individu.need.length > 0) {
+        switch (individu.need[0]) {
+            case 'drink':
+                if (individu.soif > 9) {
+                    individu.need.shift();
+                    return getBestPos(individu, gameId);
+                } else {
+                    if (canSee.some(pos => map[pos.x][pos.y].type == 0)) {
+                        let water = canSee.filter(pos => map[pos.x][pos.y].type == 0);
+                        let bestPos = getRandomChoice(water);
+                        console.log("bestPos to drink : " + JSON.stringify(bestPos));
+                        return bestPos;
+                    } else {
+                        return getRandomChoice(empty) || individu.pos;
+                    }
+                }
+            case 'eat':
+                if (individu.satiété > 9) {
+                    individu.need.shift();
+                    return getBestPos(individu, gameId);
+                } else {
+                    if (canSee.some(pos => map[pos.x][pos.y].nourriture)) {
+                        let nourriture = canSee.filter(pos => map[pos.x][pos.y].nourriture);
+                        let bestPos = getRandomChoice(nourriture);
+                        console.log("bestPos to eat : " + JSON.stringify(bestPos));
+                        return bestPos;
+                    } else {
+                        return getRandomChoice(empty) || individu.pos;
+                    }
+                }
+            default:
+                console.log("need not found : ", individu.need[0])
+                need.shift();
+                return getBestPos(individu, gameId);
+
+        }
+    } else
+        switch (individu.mode[0]) {
+
+            case 'explore':
+                if (individu.reproduceCooldown < 0) {
+                    if (canSee.some(pos => map[pos.x][pos.y].nourriture)) {
+                        let nourriture = canSee.filter(pos => map[pos.x][pos.y].nourriture);
+                        let bestPos = getRandomChoice(nourriture);
+                        return bestPos;
+                    }
+                } else if (canSee.some(pos => map[pos.x][pos.y].population == 0)) {
+
+                    let bestPos = getRandomChoice(empty) || individu.pos;
+                    return bestPos;
+                } else {
+                    return individu.pos;
+                }
+                break;
+
+            case 'reproduce':
+                return individu.origine;
+                break;
+            case 'drinking':
+                return individu.pos;
+
+            case 'waitingReproduction':
+                return individu.origine;
+                break;
+            default:
+                individu.mode=["explore"]
+                return getBestPos(individu, gameId);
+
+        }
+}
+
+function createFile(individu, gameID) {
+    let map = games[gameID].tiles;
+    individu.file = getBestPath(individu.pos, getBestPos(individu, gameID), gameID);
+}
 
 
+function DeplacerIndividus(gameId) {
+    const game = games[gameId];
 
+    const interval = setInterval(() => {
+        if (!Object.values(game.players).some(player => player.individus.some(individu => individu.moveTurns > 0))) {
+            clearInterval(interval);
+            return;
+        }
 
+        for (let joueur of Object.keys(game.players)) {
+            for (let individu of game.players[joueur].individus) {
+                if (individu.moveTurns > 0) {
+                    if (individu.file.length == 0) {
+                        createFile(individu, gameId);
+                    }
+                    let nouvellePos = individu.file.shift();
+                    if (games[gameId].tiles[nouvellePos.x][nouvellePos.y].population != 0) {
+                        if (nouvellePos.x == individu.origine.x && nouvellePos.y == individu.origine.y) {
+                            deplacerIndividu(individu, nouvellePos, gameId);
+                            individu.moveTurns--;
+                        } else if (!getNeighbors(nouvellePos, games[gameId].size_x, games[gameId].size_y).some(pos => games[gameId].tiles[pos.x][pos.y].population == 0)) {
+                            individu.moveTurns--;
+                        } else {
+                            createFile(individu, gameId);
+                            nouvellePos = individu.file.shift();
+                            deplacerIndividu(individu, nouvellePos, gameId);
+                            individu.moveTurns--;
+                        }
+                    } else
+                        if (nouvellePos.x !== individu.pos.x || nouvellePos.y !== individu.pos.y) {
+                            deplacerIndividu(individu, nouvellePos, gameId);
+                            individu.moveTurns--;
+                            individu.hasMoved++;
+                        } else {
+                            individu.moveTurns--;
+                        }
+                }
+            }
+        }
+        io.to(gameId).emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
+    }, 500);
+}
 
+function preTurnIndividus(gameId) {
+    let game = games[gameId];
 
+    for (let playerId in game.players) {
+        const player = game.players[playerId];
 
+        // Iterate over each individu of the player
 
+        for (let individu of player.individus) {
 
-
-function getBestPos(individu, map) {
-    switch (individu.mode) {
-        case 'explore':
+            if (individu.satiété < 5) {
+                individu.need.unshift('eat');
+                createFile(individu, gameId);
+            }
             if (individu.soif < 5) {
-                individu.mode.unshift('drink');
-                return getBestPos(individu, map);
+                individu.need.unshift('drink');
+                createFile(individu, gameId);
             }
-            if (individu.nourriture < 5) {
-                individu.mode.unshift('eat');
-                return getBestPos(individu, map);
-            }
-            if (individu.canReproduce) {
-                individu.mode.unshift('reproduce');
-                return getBestPos(individu, map);
-            }
-            let inRange = getInRange(individu.pos, individu.vitesse);
 
-            let bestPos = getRandomChoice(inRange);
+            individu.moveTurns = player.attributs.vitesse;
+        }
 
-            return;
-        case 'drink':
-            return;
-        case 'eat':
-            return;
-        case 'reproduce':
-            return;
     }
 }
 
+function postTurnIndividus(gameId) {
+    let game = games[gameId]
+    for (let playerId in game.players) {
+        const player = game.players[playerId];
+        // Iterate over each individu of the player
+        for (let individu of player.individus) {
+            if (individu.reproduceCooldown > 0) {
+                individu.reproduceCooldown--;
+            }
+            if (game.tiles[individu.pos.x][individu.pos.y].nourriture) {
+                individu.satiété += 3;
+                if (individu.reproduceCooldown == 0) {
+                    individu.canReproduce = true;
+                    individu.mode.unshift("reproduce");
+                    individu.reproduceCooldown = player.reproductionCooldown;
+                }
+                if (individu.satiété > player.maxSatiété) {
+                    individu.satiété = player.maxSatiété;
+                }
+                if (individu.need.includes("eat")) {
+                    individu.need = individu.need.filter(need => need != "eat");
+                }
 
+            } else if (game.tiles[individu.pos.x][individu.pos.y].type == 0) {
+                if (individu.need.includes("drink")) {
+                    individu.need = individu.need.filter(need => need != "drink");
+                    if (individu.mode[0] != "drinking" && !individu.mode.includes("drinking")) {
+                        individu.mode.unshift("drinking");
+                    }
+                }
 
+                individu.soif += 1;
+                if (individu.soif > player.maxSoif) {
+                    individu.soif = player.maxSoif;
+                }
 
-function avancerDunTour(gameId) {
-    const game = games[gameId];
-
-    for (let joueur in game.players)
-        for (let individu of game.individus[joueur]) {
-
-            const nouvellePos = getBestPos(individu, game.tiles, game.attributs[joueur].vision)
-
-
-            if (nouvellePos) {
-                deplacerIndividu(joueur, individu.pos, nouvellePos, gameId, individu);
+                if (individu.mode[0] == "drinking") {
+                    individu.satiété -= player.afkSatiété;
+                    if (individu.soif > Math.floor(player.maxSoif * 0.8)) {
+                        individu.mode.shift();
+                    }
+                }
             }
 
-        }
-    games[gameId].currentTour++;
+            if (individu.mode[0] == "reproduce") {
+                if (individu.pos.x == individu.origine.x && individu.pos.y == individu.origine.y) {
+                    if (individu.canReproduce) {
+                        player.waitingReproduction.push(individu);
+                        individu.mode.shift();
+                        individu.mode.unshift("waitingReproduction")
+                        let reproductible = player.waitingReproduction.filter(individu => individu.canReproduce);
+                        individu.satiété -= player.afkSatiété;
+                        individu.soif -= player.afkSoif;
+                        if (reproductible.length >= 2) {
 
-    io.to(gameId).emit("tiles", games[gameId].tiles);
-    io.to(gameId).emit("currentTurn", games[gameId].tour);
+                            let individu1 = reproductible.shift();
+                            let individu2 = reproductible.shift();
+
+                            individu1.canReproduce = false;
+                            individu2.canReproduce = false;
+
+                            individu1.reproduceCooldown = player.reproductionCooldown;
+                            individu2.reproduceCooldown = player.reproductionCooldown;
+
+                            creerIndividu(gameId, player, player.attributs.reproduction);
+
+                            individu1.mode.shift();
+                            individu2.mode.shift();
+                        }
+                    }
+                }
+            }
+
+
+            individu.satiété -= individu.hasMoved * player.moveSatiété;
+            individu.soif -= individu.hasMoved * player.moveSoif;
+
+            if (individu.satiété < 0) {
+                game.tiles[individu.pos.x][individu.pos.y].population = 0;
+                let idToRemove = individu.id;
+                player.individus = player.individus.filter(individu => individu.id != idToRemove);
+
+            }
+            if (individu.soif < 0) {
+                game.tiles[individu.pos.x][individu.pos.y].population = 0;
+                let idToRemove = individu.id;
+                player.individus = player.individus.filter(individu => individu.id != idToRemove);
+            }
+            individu.hasMoved = 0;
+        }
+    }
 }
 
+function getPosBase(number, gameId) {
+    switch (number) {
+        case 1:
+            return { x: 0, y: Math.floor(games[gameId].size_y / 2) };
+        case 2:
+            return { x: games[gameId].size_x-1, y: Math.floor(games[gameId].size_y / 2) };
+        case 3:
+            return { x: Math.floor(games[gameId].size_x / 2), y: 0 };
+        case 4:
+            return { x: Math.floor(games[gameId].size_x / 2), y: games[gameId].size_y -1};
+    }
+}
+
+function turn(gameId) {
+    const game = games[gameId];
+
+    // Check if the game exists and has players
+    if (game && game.players) {
+
+        preTurnIndividus(gameId);
+        DeplacerIndividus(gameId);
+        postTurnIndividus(gameId);
+        io.to(gameId).emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
+        io.to(gameId).emit("gameInfo", games[gameId]); // Emit the infos of the game to clients
+        let player = game.players[Object.keys(game.players)[0]];
+        console.log("turn " + game.currentTour + " of game " + gameId + " ended");
+        game.currentTour++;
+
+        // Call the turn function again after 1 second
+        setTimeout(() => {
+            turn(gameId);
+        }, 1000);
+
+    } else {
+        // Handle the case where game or players are not defined
+        console.error(`Invalid game or players for gameId: ${gameId}`);
+    }
+}
 
 
 
 function testAttribut(attribute, gameId) {
+
     const game = games[gameId];
 
-    // Check if the game exists and has an attributes array
-    if (game && Array.isArray(game.attributes)) {
-        // Check if any existing attribute has the same values
-        const isAttributeTaken = game.attributes.some(existingAttribute => (
-            existingAttribute.vitesse === attribute.vitesse &&
-            existingAttribute.reproduction === attribute.reproduction &&
-            existingAttribute.vision === attribute.vision
-        ));
-
-        // Return false if any attribute has the same values, true otherwise
-        return !isAttributeTaken;
-
+    // Check if the game exists and has players
+    if (game && game.players) {
+        // Check if any player has the same attribute values
+        for (let playerId of Object.keys(game.players)) {
+            console.log(playerId)
+            console.log("given attribute: ",attribute, "compared to: ", game.players[playerId].attributs)
+            const player = game.players[playerId];
+            if (player.attributs &&
+                player.attributs.vitesse === parseInt(attribute.vitesse) &&
+                player.attributs.reproduction === parseInt(attribute.reproduction) &&
+                player.attributs.vision === parseInt(attribute.vision)) {
+                return false;
+            }
+        }
+        return true;
     } else {
-        // Handle the case where game or its attributes array is not defined
-        console.error(`Invalid game or attributes for gameId: ${gameId}`);
+        // Handle the case where game or players are not defined
+        console.error(`Invalid game or players for gameId: ${gameId}`);
         return false;
     }
 }
 
-function getInReach(pos, size_x, size_y, range) {
-    var f = [];
-    var res = new Set();
-    var distances = new Map();
-    var inReach = [];
-    f.push({ position: pos, distance: 0 });
-    res.add(`${pos.x}-${pos.y}`);
-    distances.set(`${pos.x}-${pos.y}`, 0);
-    inReach.push(pos);
 
-    while (f.length > 0) {
-        let { position, distance } = f.shift();
-
-
-        if (distance >= range) {
-            continue;
-        }
-
-        for (let neighbor of getNeighbors(position, size_x, size_y)) {
-            const neighborKey = `${neighbor.x}-${neighbor.y}`;
-
-            if (!res.has(neighborKey)) {
-                f.push({ position: neighbor, distance: distance + 1 });
-                res.add(neighborKey);
-                distances.set(neighborKey, distance + 1);
-                inReach.push(neighbor)
-            }
-        }
-    }
-
-    return inReach;
-}
 
 function resetTiles(gameId) {
     if (games[gameId] && games[gameId].tiles) {
@@ -409,14 +604,10 @@ function resetTiles(gameId) {
 
 
 
-
-
-
-
 io.on('connection', (socket) => {
 
     socket.on("newGame", data => {
-        let gameId = createGame(data.size_x, data.size_y, data.maxPlayers);
+        let gameId = createGame(data.size_x, data.size_y, data.maxPlayers, data.creator);
 
         socket.emit("joinGameResponse",
             {
@@ -426,16 +617,30 @@ io.on('connection', (socket) => {
         io.emit("newGame", { gameId: gameId, game: games[gameId] });
     });
 
+    socket.on("startGame", (gameId,callback) => {
+        if (!some(games[gameId].players, player => !player.pret)) {
+
+            let game = games[gameId];
+            for (let playerId in game.players) {
+                creerIndividu(gameId, game.players[playerId], 2);
+            }
+            socket.emit("gameStarted");
+            callback(true);
+        } else {
+            callback(false);
+        }
+    });
+
 
     socket.on("enterGame", data => {
         const gameId = data.gameId;
         const playerName = data.playerName;
 
-        if (games.hasOwnProperty(gameId) && games[gameId].players.includes(playerName)) {
+        if (games.hasOwnProperty(gameId) && games[gameId].players.hasOwnProperty(playerName)) {
             socket.emit('enterGameResponse',
                 {
                     "allowed": true,
-                    "playerNumber": games[gameId].players.indexOf(playerName)
+                    "playerNumber": games[gameId].players[playerName].number
                 });
 
             socket.join(gameId);
@@ -444,7 +649,7 @@ io.on('connection', (socket) => {
         }
 
         // Check if the game is full
-        if (games.hasOwnProperty(gameId) && games[gameId].players.length >= games[gameId].maxPlayers) {
+        if (games.hasOwnProperty(gameId) && Object.keys(games[gameId].players).length >= games[gameId].maxPlayers) {
             socket.emit('enterGameResponse',
                 {
                     "allowed": false,
@@ -458,24 +663,39 @@ io.on('connection', (socket) => {
 
         // Add the player to the game
 
-        games[gameId].players.push(playerName);
-        games[gameId].attributs.push({});
-        games[gameId].individus.push([]);
+        games[gameId].players[playerName] = {
+            "name": playerName,
+            "attributs": {},
+            "individus": [],
+            "waitingReproduction": [],
+            "number": Object.keys(games[gameId].players).length + 1,
+            "maxSatiété": 10,
+            "maxSoif": 10,
+            "afkSatiété": 0.1,
+            "afkSoif": 0.1,
+            "moveSatiété": 0.4,
+            "moveSoif": 0.3,
+            "reproductionCooldown": 5,
+            "social": false,
+            "montagnard": false,
+            "posBase": getPosBase(Object.keys(games[gameId].players).length + 1, gameId),
+            pret: false
+        };
 
         // Emit 'playerJoined' to all clients in the game
         io.to(gameId)
             .emit('playerEntered',
                 {
-                    "playerList": games[gameId].players,
+                    "playerList": Object.keys(games[gameId].players),
                     "playerName": playerName,
-                    "playerNumber": games[gameId].players.indexOf(playerName)
+                    "playerNumber": games[gameId].players[playerName].number
                 });
 
         // Emit 'enterGameResponse' to the current client
         socket.emit('enterGameResponse',
             {
                 "allowed": true,
-                "playerNumber": games[gameId].players.indexOf(playerName),
+                "playerNumber": games[gameId].players[playerName].number
 
             });
 
@@ -519,37 +739,47 @@ io.on('connection', (socket) => {
     })
 
     socket.on("play", data => {
-        const startTime = performance.now();
-
-        for (let i = 0; i < 1000; i++) {
-            let path =getBestPath({ x: 0, y: 0 }, data.tile, games[data.gameId].tiles, data.gameId);
-        }
-
-        const endTime = performance.now();
-        const totalTime = endTime - startTime;
-        console.log(`Total time for 1000 iterations: ${totalTime} milliseconds`);
+        turn(data.gameId);
     });
 
     socket.on("reset", gameId => {
         resetTiles(gameId);
     });
 
-    /*socket.on("getGames", ()=>{
+    socket.on("getGames", ()=>{
+        console.log("getGames");
         socket.emit("getGamesResponse", games)
-    })*/
+    })
 
-    socket.on("submitAttribute", data => {
-        let idJoueur = games[data.gameId].players.indexOf(data.joueur);
-        if (testAttribut()) {
-            games[data.gameId].attributs[idJoueur] = creerAttributs(data.vitesse, data.vision, data.reproduction);
-            creerIndividu(data.gameId, data.joueur, 2);
+    socket.on("submitAttributes", (data, callback) => {
+        console.log(data);
+        if (testAttribut(data, data.gameId)) {
+            console.log("passed")
+            games[data.gameId].players[data.joueur].attributs = creerAttributs(parseInt(data.vitesse), parseInt(data.vision), parseInt(data.reproduction));
+            console.log(games[data.gameId].players[data.joueur].attributs);
+            callback(true);
             socket.emit("pret");
+            games[data.gameId].players[data.joueur].pret = true;
+
         } else {
-            socket.emit("erreurAttribut", "Attributs déja prits");
+            callback(false);
         }
     })
 
+    function updateTiles(gameId) {
+        io.to(gameId).emit("tiles", games[gameId].tiles);
+    }
+
 });
+
+function creerAttributs(vitesse, vision, reproduction) {
+    return {
+        "vitesse": vitesse,
+        "vision": vision,
+        "reproduction": reproduction
+    }
+}
+
 
 function topLeft(pos) {
     var y = pos.y;

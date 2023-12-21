@@ -63,7 +63,7 @@ function createGame() {
     var size_y = $("#size-y").val();
 
     // Emit the "newGame" event with the obtained values
-    socket.emit("newGame", { "size_x": size_x, "size_y": size_y, "maxPlayers": maxPlayers });
+    socket.emit("newGame", { "size_x": size_x, "size_y": size_y, "maxPlayers": maxPlayers, "creator": playerName });
 }
 
 
@@ -160,10 +160,8 @@ function updateGameButtonPlayers(gameId, numberOfPlayers, maxPlayers,size_x,size
 
 // Socket event handling
 socket.on("getGamesResponse", data => {
-
+    console.log("getGamesResponse", data)
     $("#running-games").empty();
-
-
     Object.keys(data).forEach(gameId => {
         const gameInfo = data[gameId];
         addGameButton(gameId, gameInfo);

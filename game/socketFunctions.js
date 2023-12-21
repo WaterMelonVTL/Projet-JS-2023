@@ -29,11 +29,18 @@ socket.on('gameInfo', data => {
         }
     }
 
-    if (players.includes(playerName)) {
+    if (Object.keys(players).includes(playerName)) {
         closeModal();
         enterGame();
     }
     $("#listeJoueurs").text(players);
+    if (data.creator == playerName && data.currentTurn == 0) {
+        $("#startGameButton").css("display", "block");
+    }
+    else {
+        $("#startGameButton").css("display", "none");
+    }
+    $("#tourActuel").text(data.currentTurn);
 
 });
 

@@ -6,62 +6,54 @@ var toutlemondeachoisi = false
 var reproductionPoints = 1;
 var vitessePoints = 1;
 var visionPoints = 1;
-var pret = false ;
+var pret = false;
 
-$(document).ready(function () 
-{
+$(document).ready(function () {
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     gameId = url.searchParams.get("gameId");
-    
-    
+
+
 
     requestGameInfo(gameId);
-    
+
 });
 
-function openModal(allowed,message,hasToSetName=false) 
-{
+function openModal(allowed, message, hasToSetName = false) {
     $("#welcomeMessage").text(message);
     $("#myModal").css("display", "flex");
-    if (hasToSetName){
+    if (hasToSetName) {
         $("#nameContent").css("display", "block")
         $("#enterButton").css("display", "none")
     }
-    if (!allowed)
-    {
+    if (!allowed) {
         $("#enterButton").css("display", "none")
     }
 };
 
-function closeModal() 
-{
+function closeModal() {
     console.log("modal closed");
     $("#myModal").css("display", "none");
 };
 
-function enterGame() 
-{
-    socket.emit("enterGame",{"gameId":gameId,"playerName":playerName});
+function enterGame() {
+    socket.emit("enterGame", { "gameId": gameId, "playerName": playerName });
 };
 
-function getPlayerName() 
-{
+function getPlayerName() {
     var PlayerName = document.cookie.replace(/(?:(?:^|.*;\s*)playerName\s*=\s*([^;]*).*$)|^.*$/, "$1");
 
     return PlayerName || null;
 };
 
 function requestGameInfo(gameId) {
-    socket.emit('requestGameInfo',gameId);
+    socket.emit('requestGameInfo', gameId);
 };
 
-if (!toutlemondeachoisi ){
-    $("#playarea").style('hidden');
-    $("#CreationEspece").style('block');
-
+document.onload = function () {
+    $("#CreationEspece").css("display", "block");
+    $("#playarea").css("display", "none");
 }
-
 function defPname() {
     let pname = $('#nameInput').val(); // Add parentheses after val
     if (pname) {
@@ -74,41 +66,53 @@ function updateAttributeDisplay(attribute) {
     document.getElementById(attribute + 'Points').innerText = eval(attribute + 'Points');
 }
 
+let attributes = {
+    'reproduction': 0,
+    'vitesse': 0,
+    'vision': 0
+};
+let totPts = 10;
+
 function increaseAttribute(attribute) {
-    if (attribute === 'reproduction' && reproductionPoints < 5 && (vitessePoints + visionPoints) < (10-reproductionPoints)) {
-        reproductionPoints++;
-    } else if (attribute === 'vitesse' && vitessePoints < 5 && (reproductionPoints + visionPoints) < (10-vitessePoints)) {
-        vitessePoints++;
-    } else if (attribute === 'vision' && visionPoints < 5 && (reproductionPoints + vitessePoints) < (10-visionPoints)) {
-        visionPoints++;
+    if (totPts > 0) {
+        attributes[attribute]++;
+        totPts--;
+        document.getElementById(attribute + '-pts').innerText = attributes[attribute];
+        document.getElementById('totPts').innerText = totPts;
     }
-    updateAttributeDisplay(attribute);
 }
 
 function decreaseAttribute(attribute) {
-    if (attribute === 'reproduction' && reproductionPoints > 1) {
-        reproductionPoints--;
-    } else if (attribute === 'vitesse' && vitessePoints > 1) {
-        vitessePoints--;
-    } else if (attribute === 'vision' && visionPoints > 1) {
-        visionPoints--;
+    if (attributes[attribute] > 0) {
+        attributes[attribute]--;
+        totPts++;
+        document.getElementById(attribute + '-pts').innerText = attributes[attribute];
+        document.getElementById('totPts').innerText = totPts;
     }
-    updateAttributeDisplay(attribute);
 }
 
 
 
 function submitAttributes() {
-    let reproductionPoints = $("#reproductionPoints").val() ;
-    let visionPoints = $("#visionPoints").val() ;
-    let vitessePoints = $("#vitessePoints").val() ;
-    if ((reproductionPoints + vitessePoints + visionPoints) === 10) {
+    let reproductionPoints = attributes.reproduction;
+    let visionPoints = attributes.vision;
+    let vitessePoints = attributes.vitesse;
+    if ((reproductionPoints + vitessePoints + visionPoints) == 10) {
+        console.log(gameId);
         socket.emit("submitAttributes", {
             "gameId": gameId,
             "reproduction": reproductionPoints,
             "vitesse": vitessePoints,
             "vision": visionPoints,
-            "joueur" : playerName
+            "joueur": playerName
+        }, (response) => {
+            if (response) {
+                pret = true;
+                $("#CreationEspece").css("display", "none");
+                $("#playarea").css("display", "flex");
+            } else {
+                alert("Les attributs sont déjà utilisés par un autre joueur.");
+            }
         });
 
     } else {
@@ -116,11 +120,13 @@ function submitAttributes() {
     }
 }
 
-function verificationJoueurPret() {
-    if (pret) {
-        $("#test").show();
-    }
-    else {
-        alert("Les joueurs ne sont pas prêts.");
-    }
+function startGameButton() {
+
+    socket.emit("startGame", gameId, (response)=>{
+        if (response){
+            $("#startGameButton").css("display", "none");
+        } else {
+            alert("Tous les joueurs ne sont pas pret.");
+        }
+    });
 }
