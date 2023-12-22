@@ -40,7 +40,7 @@ socket.on('gameInfo', data => {
     console.log(data);
     console.log(data.createur);
     
-    if (data.createur == playerName && data.currentTour == 0) {
+    if (data.createur == playerName && !data.started) {
         $("#startGameButton").css("display", "block");
     }
     else {

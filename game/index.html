@@ -64,13 +64,13 @@
         <div class="flex flex-col items-center relative"></div>
             <h1 id="skillMessage" class="text-2xl text-black mb-4 font-bold"></h1>
             <p id="skillDescription" class="text-xl text-black mb-4"></p>
-            <button id="closeSkillButton" class="font-bold p-4 border-2 border-black rounded-md" onclick="closeSkillModal()">Compris!</button>
+            <button id="closeSkillButton" class="font-bold p-4 border-2 border-black rounded-md hover:bg-blue-500 hover:text-white hover:scale-105 transition-all duration-300" onclick="closeSkillModal()">Compris!</button>
         </div>
     </div>
     <div id="myModal" class="modal z-30">
-        <div class="modal-content">
+        <div class="modal-content" class="rounded-md">
 
-            <p id="welcomeMessage"></p>
+            <p id="welcomeMessage" class="text-3xl"></p>
             <div id="nameContent" style="display: none; " class="nameInput">
                 <h1>
                     Vous devez définir votre nom pour rejoindre une partie
@@ -79,10 +79,10 @@
                 <button id="nameButton" onclick="defPname()">définir</button>
             </div>
             <div class="buttons">
-                <button id="enterButton" onclick="enterGame()" class='button'>
+                <button id="enterButton"  onclick="enterGame()" class='button p-4 text-xl font-normal border-2 border-black rounded-md hover:bg-blue-500 hover:scale-105 hover:text-white transition-all duration-300'>
                     <h1>Enter</h1>
                 </button>
-                <button id="spectateButton" onclick="closeModal()" class='button'>
+                <button id="spectateButton"  onclick="closeModal()" class='button p-4 text-xl font-normal border-2 border-black rounded-md hover:bg-blue-500 hover:scale-105 hover:text-white transition-all duration-300'>
                     <h1>Spectate</h1>
                 </button>
             </div>
@@ -93,19 +93,24 @@
     <div class="flex flex-col m-8 text-white items-center">
         <div id="joueurs" class="text-white flex flex-row items-center">
             <div class=" flex flex-row items-center">
-                <h1 class=" text-xl">Joueurs : </h1>
-                <label id="listeJoueurs" class="ml-2 text-xl"></label>
+                <h1 class=" text-xl font-bold">Joueurs : </h1>
+                <label id="listeJoueurs" class="ml-2 text-xl font-normal"></label>
             </div>
             <div class="ml-8 flex flex-row items-center">
-                <h1 class=" text-xl">Votre capacité : </h1>
-                <label id="capacité" class="ml-2 text-xl"></label>
+                <h1 class=" text-xl font-bold">Votre capacité : </h1>
+                <label id="capacité" class="ml-2 text-xl font-normal"></label>
 
             </div>
-            <h1 class="text-white ml-8 text-xl"> Tour : <span id="tourActuel">0</span></h1>
+            <h1 class="text-white ml-8 text-xl font-bold"> Tour : <span class=" font-normal" id="tourActuel">0</span></h1>
+            <button class="p-2 border-2 border-white hover:bg-white hover:text-black hover:scale-105 cursor-pointer rounded-md ml-8 transition-all duration-500"
+            onclick="quitter()">
+                Quitter la partie
+            </button>
         </div>
         
 
-        <div id="playarea" class="playarea mt-4">
+
+        <div id="playarea" class="playarea mt-4 flex flex-col items-center justify-center">
 
         </div>
         <hr />

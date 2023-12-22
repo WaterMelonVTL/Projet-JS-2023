@@ -131,3 +131,8 @@ function startGame() {
         }
     });
 }
+
+function quitter(){
+    socket.emit("quitter", {gameId:gameId, name:playerName});
+    window.location.href = window.location.origin;
+}

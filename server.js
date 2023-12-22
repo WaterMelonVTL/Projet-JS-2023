@@ -53,18 +53,21 @@ function init_game(size_x, size_y) {
         let temp = [];
         for (let j = 0; j < size_y; j++) {
             let type = Math.random();
-            let tile = { "type": -1, "population": 0, "nourriture": false, pos: { x: i, y: j }, "count": 0 };
+            let tile =
+            {
+                "type": -1,
+                "population": 0,
+                "nourriture": false, pos: { x: i, y: j },
+                "farmed": 0,
+                "isTaverne": 0
+            };
             if (type < 0.1 && map[i][j] == 1) {
                 tile.nourriture = true;
                 tile.type = 1;
             } else {
-                if (i == 0 && j == 0) {
-                    tile.type = 10;
-                } else if (i == size_x - 1 && j == size_y - 1) {
-                    tile.type = 11;
-                } else {
-                    tile.type = map[i][j];
-                }
+
+                tile.type = map[i][j];
+
             }
             temp.push(tile)
         }
@@ -91,6 +94,7 @@ function createGame(size_x, size_y, maxPlayers, creator) {
         "size_y": size_y,
         "createur": creator,
         "currentTour": 0,
+        "started": false,
 
     };
 
@@ -213,14 +217,13 @@ function decideSkill(player, gameId) {
     let neighbors = getNeighbors(pos, game.size_x, game.size_y);
     let getRange3 = getInRange(pos, 3, gameId, player);
     let waterInRange = getRange3.filter(pos => map[pos.x][pos.y].type == 0);
-    console.log(pos, waterInRange);
     if (map[pos.x][pos.y].type == 2 || neighbors.every(pos => map[pos.x][pos.y].type == 2)) {
-        console.log("player ", player.name, " is a montagnard");
+        console.log("player ", player.name, " has spawned on a montain or is surronded by montains so he is a montagnard");
         player.montagnard = true;
         player.skill = "montagnard";
     }
     else if (waterInRange.length > 9) {
-        console.log("player ", player.name, " is a aquatique");
+        console.log("player ", player.name, " is surrounded by a lot of water so he is an aquatique");
         player.aquatique = true;
         player.skill = "aquatique";
     } else {
@@ -327,7 +330,7 @@ function getBestPath(pos1, pos2, gameId, individu) {
         // Get the valid neighbors of the current node
         if (individu.skill == "montagnard") {
             console.log("individual ", individu.id, " from ", individu.parent, "is a montagnard and can move on mountains (getting all neighbors)")
-            neighbors = getNeighbors(current, games[gameId].size_x,games[gameId].size_y).map(JSON.stringify);
+            neighbors = getNeighbors(current, games[gameId].size_x, games[gameId].size_y).map(JSON.stringify);
             console.log(neighbors);
         }
         else {
@@ -466,7 +469,7 @@ async function DeplacerIndividus(gameId) {
     while (Object.values(game.players).some(player => player.individus.some(individu => individu.moveTurns > 0))) {
         for (let joueur of Object.keys(game.players)) {
             for (let individu of game.players[joueur].individus) {
-                let nouvellePos ;
+                let nouvellePos;
                 if (individu.moveTurns > 0) {
                     console.log("____");
                     console.log("individu ", individu.id, " from ", individu.parent, "has ", individu.moveTurns, " moves left. Here's his current movement file", individu.file, "the length is ", individu.file.length);
@@ -486,7 +489,7 @@ async function DeplacerIndividus(gameId) {
                             nouvellePos = individu.file.shift();
                         }
                     } else nouvellePos = individu.file.shift();
-                    
+
                     if (games[gameId].tiles[nouvellePos.x][nouvellePos.y].population != 0) {
                         if (nouvellePos.x == individu.origine.x && nouvellePos.y == individu.origine.y || individu.skill == "social") {
                             deplacerIndividu(individu, nouvellePos, gameId);
@@ -530,11 +533,28 @@ function preTurnIndividus(gameId) {
 
             if (individu.satiété < 5 && !individu.need.includes("eat")) {
                 console.log("individu ", individu.id, " from ", individu.parent, "is hungry and will look for food")
+                if (individu.mode[0]=="waitingReproduction"){
+                    console.log("individu ", individu.id, " from ", individu.parent, "was waiting for a mate but now he will look for food")
+                    
+                    individu.mode.shift();
+                    individu.mode.unshift("reproduction");
+                    individu.file = [];
+                    let individuToRemove = individu;
+                    player.waitingReproduction = player.waitingReproduction.filter(individu => individu.id !== individuToRemove.id);
+                }
                 individu.need.unshift('eat');
                 createFile(individu, gameId);
             }
             if (individu.soif < 5 && !individu.need.includes("drink")) {
                 console.log("individu ", individu.id, " from ", individu.parent, "is thirsty and will look for water")
+                if (individu.mode[0]=="waitingReproduction"){
+                    console.log("individu ", individu.id, " from ", individu.parent, "was waiting for a mate but now he will look for water")
+                    individu.mode.shift();
+                    individu.mode.unshift("reproduction");
+                    individu.file = [];
+                    let individuToRemove = individu;
+                    player.waitingReproduction = player.waitingReproduction.filter(individu => individu.id !== individuToRemove.id);
+                }
                 individu.need.unshift('drink');
                 createFile(individu, gameId);
             }
@@ -621,6 +641,8 @@ function postTurnIndividus(gameId) {
                             individu1.reproduceCooldown = player.reproductionCooldown;
                             individu2.reproduceCooldown = player.reproductionCooldown;
 
+                            player.waitingReproduction = player.waitingReproduction.filter(individu => individu.id !== individu1.id && individu.id !== individu2.id);
+
                             creerIndividu(gameId, player, player.attributs.reproduction);
 
                             individu1.mode.shift();
@@ -629,8 +651,13 @@ function postTurnIndividus(gameId) {
                     }
                 }
             }
+
             if (individu.skill == "farmers") {
                 game.tiles[individu.pos.x][individu.pos.y].farmed += 1;
+                if (game.tiles[individu.pos.x][individu.pos.y].farmed >= 3) {
+                    game.tiles[individu.pos.x][individu.pos.y].farmed = 0;
+                    game.tiles[individu.pos.x][individu.pos.y].nourriture = true;
+                }
             }
 
             individu.satiété -= individu.hasMoved * player.moveSatiété;
@@ -788,6 +815,7 @@ io.on('connection', (socket) => {
             for (let playerId in game.players) {
                 creerIndividu(gameId, game.players[playerId], 2);
             }
+            game.started = true;
             socket.emit("gameStarted");
             turn(gameId);
             callback(true);
@@ -827,7 +855,7 @@ io.on('connection', (socket) => {
         socket.join(gameId);
 
         // Add the player to the game
-
+        let posBase = getPosBase(Object.keys(games[gameId].players).length + 1, gameId);
         games[gameId].players[playerName] = {
             "name": playerName,
             "attributs": {},
@@ -847,9 +875,12 @@ io.on('connection', (socket) => {
             "farmer": false,
             "fast": false,
             "skill": "",
-            "posBase": getPosBase(Object.keys(games[gameId].players).length + 1, gameId),
+            "posBase": posBase,
             pret: false
         };
+
+        games[gameId].tiles[posBase.x][posBase.y].isTaverne = Object.keys(games[gameId].players).length + 1;
+
 
 
         // Emit 'playerJoined' to all clients in the game
@@ -940,10 +971,9 @@ io.on('connection', (socket) => {
         }
     })
 
-    function updateTiles(gameId) {
-        io.to(gameId).emit("tiles", games[gameId].tiles);
-    }
-
+    socket.on("quitter", data => {
+        console.log(data.name, " a quitté la partie ", data.gameId);
+    })
 });
 
 function creerAttributs(vitesse, vision, reproduction) {
