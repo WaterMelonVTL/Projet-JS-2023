@@ -24,8 +24,10 @@
 <body>
     <div class="flex w-screen h-[90vh] backdrop-blur-md border-y-4 flex-col items-center">
         <h1 class="text-[10rem]  text-white tracking-tight font-body font-bold drop-shadow-lg">LE JEU DE LA VIE <span class="text-3xl tracking-normal">(sous stéroides)</span></h1>
-        <div id="nameInput" class="w-screen items-center">
-            Name: <input type="text" id="playerNameInput" placeholder="Enter your name" />
+        <div id="nameInput" class="w-screen items-center ">
+            <div class="flex flex-row gap-2 text-white text-xl justify-center items-center">
+                <h1>Name: </h1><input type="text" id="playerNameInput" placeholder="Enter your name" />
+            </div>
             <button onclick="changeName()">Set Name</button>
 
         </div>
