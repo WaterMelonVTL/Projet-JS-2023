@@ -106,8 +106,8 @@ function drawHexagons(tiles) {
 }
 
 function createArea(w, h) {
-
     console.log("nb x : " + w, "nb y : " + h);
+
     function updateDimensions() {
         r = Math.min((window.innerWidth / w) * 70 / 150, ((window.innerHeight / h) * 85 / 160));
         svg.attr("width", w * r * 2)
@@ -119,12 +119,17 @@ function createArea(w, h) {
 
     r = Math.min((window.innerWidth / w) * 70 / 150, (window.innerHeight / h) * 85 / 160);
 
-    var svg = d3.select("#playarea")
-        .append("svg")
-        .attr("width", w * r * 2)
+    var playarea = d3.select("#playarea");
+    var svg = playarea.select("svg");
+
+    if (svg.empty()) {
+        svg = playarea.append("svg");
+        window.addEventListener('resize', updateDimensions);
+    }
+
+    svg.attr("width", w * r * 2)
         .attr("height", h * r * 2 + r);
 
-    window.addEventListener('resize', updateDimensions);
     updateDimensions();
     generateTiles();
 }
@@ -146,6 +151,7 @@ function reset() {
 
 function drawOverlay(tiles) {
     console.log('test');
+    d3.selectAll('circle').remove(); // Remove all "circle" elements from the SVG
     for (let col in tiles) {
         for (let row in tiles[col]) {
             let tile = tiles[col][row];

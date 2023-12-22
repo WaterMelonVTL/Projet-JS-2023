@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const http = require('http');
+const { create } = require('domain');
 const server = http.createServer(app);
 const io = require("socket.io")(server);
 
@@ -40,6 +41,9 @@ app.get('/', (request, response) => {
     response.sendFile('menu/menu.html', { root: __dirname });
 });
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function init_game(size_x, size_y) {
     var listHex = [];
@@ -77,7 +81,7 @@ function deplacerIndividu(individu, nouvellePos, gameId) {
     games[gameId].tiles[nouvellePos.x][nouvellePos.y].population = games[gameId].players[individu.parent].number;
 }
 
-function createGame(size_x, size_y, maxPlayers,creator) {
+function createGame(size_x, size_y, maxPlayers, creator) {
     const gameId = Math.floor(Math.random() * 10000);
     games[gameId] = {
         "players": {},
@@ -94,7 +98,7 @@ function createGame(size_x, size_y, maxPlayers,creator) {
 }
 function isInBound(pos, size_x, size_y) {
 
-    return (pos.x >= 0 && pos.x < size_x  && pos.y >= 0 && pos.y < size_y)
+    return (pos.x >= 0 && pos.x < size_x && pos.y >= 0 && pos.y < size_y)
 }
 
 function getNeighbors(pos, size_x, size_y) {
@@ -121,8 +125,8 @@ function creerIndividu(gameId, player, nombre) {
     for (let i = 0; i < nombre; i++) {
         let temp = {
             'origine': pos,
-            'satiété': 10,
-            'soif': 10,
+            'satiété': game.players[joueurId].maxSatiété,
+            'soif': game.players[joueurId].maxSoif,
             'pos': pos,
             'vision': game.players[joueurId].attributs.vision,
             'reproduction': game.players[joueurId].attributs.reproduction,
@@ -136,6 +140,7 @@ function creerIndividu(gameId, player, nombre) {
             'hasMoved': 0,
             'parent': joueurId,
             'id': game.players[joueurId].individus.length + 1,
+            'skill': game.players[joueurId].skill,
         };
         game.players[joueurId].individus.push(temp);
     }
@@ -160,18 +165,6 @@ function getInRange(pos, range, gameId) {
     return positions;
 }
 
-function getValidInRange(pos, range, gameId, player) {
-    let positions = [pos];
-
-    for (let i = 1; i <= range; i++) {
-        let neighbors = getNeighbors(pos, games[gameId].size_x, games[gameId].size_y);
-        neighbors.forEach((neighbor) => {
-            if (!isPosInArray(neighbor, positions)) {
-                positions.push(neighbor);
-            }
-        });
-    }
-}
 
 
 function convertPosToTiles(positions, gameId) {
@@ -201,20 +194,97 @@ function convertPosToValidTiles(positions, gameId, player) {
 
 
 function getValidNeighbors(pos, gameId) {
-
     let game = games[gameId];
 
     let neighbors = getNeighbors(pos, game.size_x, game.size_y);
 
     neighbors = neighbors.filter(neighbor => {
 
-        return game.tiles[neighbor.x][neighbor.y].type !== 2});
+        return game.tiles[neighbor.x][neighbor.y].type !== 2
+    });
 
     return neighbors;
 }
 
+function decideSkill(player, gameId) {
+    let game = games[gameId];
+    let map = game.tiles;
+    let pos = player.posBase;
+    let neighbors = getNeighbors(pos, game.size_x, game.size_y);
+    let getRange3 = getInRange(pos, 3, gameId, player);
+    let waterInRange = getRange3.filter(pos => map[pos.x][pos.y].type == 0);
+    console.log(pos, waterInRange);
+    if (map[pos.x][pos.y].type == 2 || neighbors.every(pos => map[pos.x][pos.y].type == 2)) {
+        console.log("player ", player.name, " is a montagnard");
+        player.montagnard = true;
+        player.skill = "montagnard";
+    }
+    else if (waterInRange.length > 9) {
+        console.log("player ", player.name, " is a aquatique");
+        player.aquatique = true;
+        player.skill = "aquatique";
+    } else {
+        let skill = Math.random();
+        console.log(skill);
+        if (skill <= 0.1) {
+            player.social = true;
+            player.skill = "social";
+        } else if (skill <= 0.2) {
+            player.montagnard = true;
+            player.skill = "montagnard";
+        } else if (skill <= 0.3) {
+            player.aquatique = true;
+            player.skill = "aquatique";
+        } else if (skill <= 0.4) {
+            player.skill = "traveler";
+            player.moveSatiété = 0.3;
+            player.moveSoif = 0.2;
+        } else if (skill <= 0.5) {
+            player.skill = "big Stomach";
+            player.maxSatiété = 15;
+        } else if (skill <= 0.6) {
+            player.skill = "desert Tribe";
+            player.maxSoif = 15;
+        } else if (skill <= 0.7) {
+            player.skill = "farmers";
+            player.farmer = true;
+        } else if (skill <= 0.8) {
+            player.skill = "fast sprinters";
+            player.fast = true;
+        } else if (skill <= 0.9) {
+            player.skill = "fast breeders";
+            player.reproductionCooldown = 3;
+        } else {
+            player.skill = "economes";
+            player.afkSatiété = 0.05;
+            player.afkSoif = 0.05;
+        }
+        console.log("player ", player.name, " has the skill ", player.skill);
 
-function getBestPath(pos1, pos2, gameId) {
+
+    }
+}
+
+function removeFood(pos, gameId) {
+
+    games[gameId].tiles[pos.x][pos.y].nourriture = false;
+
+}
+
+function createFood(gameId) {
+    let game = games[gameId];
+    let map = game.tiles;
+    for (let i = 0; i < game.size_x; i++) {
+        for (let j = 0; j < game.size_y; j++) {
+            let type = Math.random();
+            if (map[i][j].type == 1 && type < 0.1) {
+                map[i][j].nourriture = true;
+            }
+        }
+    }
+}
+
+function getBestPath(pos1, pos2, gameId, individu) {
     if (pos1.x == pos2.x && pos1.y == pos2.y) {
         return [pos1];
     }
@@ -253,9 +323,16 @@ function getBestPath(pos1, pos2, gameId) {
             }
             return total_path;
         }
-
+        let neighbors = [];
         // Get the valid neighbors of the current node
-        let neighbors = getValidNeighbors(current, gameId).map(JSON.stringify);
+        if (individu.skill == "montagnard") {
+            console.log("individual ", individu.id, " from ", individu.parent, "is a montagnard and can move on mountains (getting all neighbors)")
+            neighbors = getNeighbors(current, games[gameId].size_x,games[gameId].size_y).map(JSON.stringify);
+            console.log(neighbors);
+        }
+        else {
+            neighbors = getValidNeighbors(current, gameId).map(JSON.stringify);
+        }
 
         for (let neighborKey of neighbors) {
             let neighbor = JSON.parse(neighborKey);
@@ -277,39 +354,45 @@ function getBestPath(pos1, pos2, gameId) {
 }
 
 function getBestPos(individu, gameId) {
+    console.log("individu ", individu.id, " from ", individu.parent, "is looking for a new target pos. \n It has", individu.need, "as need and", individu.mode, "as mode.")
     let map = games[gameId].tiles;
     const canSee = getInRange(individu.pos, individu.vision, gameId);
 
     let empty = canSee.filter(pos => {
-        return map[pos.x][pos.y].population == 0 && map[pos.x][pos.y].type != 2});
+        return map[pos.x][pos.y].population == 0 && map[pos.x][pos.y].type != 2
+    });
 
     if (individu.need.length > 0) {
         switch (individu.need[0]) {
             case 'drink':
                 if (individu.soif > 9) {
                     individu.need.shift();
+                    console.log("individu ", individu.id, " from ", individu.parent, "has no need to drink anymore")
                     return getBestPos(individu, gameId);
                 } else {
                     if (canSee.some(pos => map[pos.x][pos.y].type == 0)) {
                         let water = canSee.filter(pos => map[pos.x][pos.y].type == 0);
                         let bestPos = getRandomChoice(water);
-                        console.log("bestPos to drink : " + JSON.stringify(bestPos));
+                        console.log("individu ", individu.id, " from ", individu.parent, "has found a water tile at ", bestPos)
                         return bestPos;
                     } else {
+                        console.log("individu ", individu.id, " from ", individu.parent, "has not found a water tile and will keep exploring")
                         return getRandomChoice(empty) || individu.pos;
                     }
                 }
             case 'eat':
-                if (individu.satiété > 9) {
+                if (individu.satiété > 6) {
                     individu.need.shift();
+                    console.log("individu ", individu.id, " from ", individu.parent, "has no need to eat anymore")
                     return getBestPos(individu, gameId);
                 } else {
                     if (canSee.some(pos => map[pos.x][pos.y].nourriture)) {
                         let nourriture = canSee.filter(pos => map[pos.x][pos.y].nourriture);
                         let bestPos = getRandomChoice(nourriture);
-                        console.log("bestPos to eat : " + JSON.stringify(bestPos));
+                        console.log("individu ", individu.id, " from ", individu.parent, "has found a food tile at ", bestPos)
                         return bestPos;
                     } else {
+                        console.log("individu ", individu.id, " from ", individu.parent, "has not found a food tile and will keep exploring")
                         return getRandomChoice(empty) || individu.pos;
                     }
                 }
@@ -323,72 +406,101 @@ function getBestPos(individu, gameId) {
         switch (individu.mode[0]) {
 
             case 'explore':
-                if (individu.reproduceCooldown < 0) {
+                if (individu.reproduceCooldown == 0) {
                     if (canSee.some(pos => map[pos.x][pos.y].nourriture)) {
+
                         let nourriture = canSee.filter(pos => map[pos.x][pos.y].nourriture);
                         let bestPos = getRandomChoice(nourriture);
+                        console.log("individu ", individu.id, " from ", individu.parent, "has found a food tile while exploring and is heading towards it at ", bestPos)
                         return bestPos;
+                    } else { //ICI <--------------------------------------
+                        console.log("individu ", individu.id, " from ", individu.parent, "has not found a food tile while exploring and will keep exploring")
+                        return getRandomChoice(empty) || individu.pos;
                     }
                 } else if (canSee.some(pos => map[pos.x][pos.y].population == 0)) {
 
                     let bestPos = getRandomChoice(empty) || individu.pos;
+                    console.log("individu ", individu.id, " from ", individu.parent, " isn't DTF (reproduceCooldown > 0) or can't see any food tile he's heading towards this random tile: ", bestPos)
                     return bestPos;
                 } else {
+                    console.log("individu ", individu.id, " from ", individu.parent, " Has no place to move to and will stay at ", individu.pos)
                     return individu.pos;
                 }
-                break;
+
 
             case 'reproduce':
+                console.log("individu ", individu.id, " from ", individu.parent, "can now reproduce and is heading towards his base at ", individu.origine)
                 return individu.origine;
                 break;
             case 'drinking':
+                console.log("individu ", individu.id, " from ", individu.parent, "is drinking at ", individu.pos)
                 return individu.pos;
 
             case 'waitingReproduction':
+                console.log("individu ", individu.id, " from ", individu.parent, "is waiting for a mate at ", individu.pos)
                 return individu.origine;
                 break;
             default:
-                individu.mode=["explore"]
+                console.log("mode not found : ", individu.mode[0])
+                individu.mode = ["explore"]
                 return getBestPos(individu, gameId);
 
         }
+    //Je laisse cette relique du passé, j'ai passé beaucoup de temps à comprendre comment c'etait possible d'en arriver à cette ligne. 
+    //Le soucis venait du fait que dans le cas : individu.need.length > 0 vrai, reproduceCooldown==0 vrai et canSee.some(pos => map[pos.x][pos.y].nourriture) faux, (j'ai mis un //ICI<-) je n'avais pas de return et donc la fonction continuait et retournait undefined.
+    console.log("QU'EST CE QU'ON FAIT LA ????? ")
 }
 
 function createFile(individu, gameID) {
-    let map = games[gameID].tiles;
-    individu.file = getBestPath(individu.pos, getBestPos(individu, gameID), gameID);
+    let nextPos = getBestPos(individu, gameID);
+    console.log("individu ", individu.id, " from ", individu.parent, "is creating a new movement file");
+    console.log("individu ", individu.id, " from ", individu.parent, "is heading towards ", nextPos);
+    individu.file = getBestPath(individu.pos, nextPos, gameID, individu);
 }
 
 
-function DeplacerIndividus(gameId) {
+async function DeplacerIndividus(gameId) {
+
     const game = games[gameId];
 
-    const interval = setInterval(() => {
-        if (!Object.values(game.players).some(player => player.individus.some(individu => individu.moveTurns > 0))) {
-            clearInterval(interval);
-            return;
-        }
-
+    while (Object.values(game.players).some(player => player.individus.some(individu => individu.moveTurns > 0))) {
         for (let joueur of Object.keys(game.players)) {
             for (let individu of game.players[joueur].individus) {
+                let nouvellePos ;
                 if (individu.moveTurns > 0) {
+                    console.log("____");
+                    console.log("individu ", individu.id, " from ", individu.parent, "has ", individu.moveTurns, " moves left. Here's his current movement file", individu.file, "the length is ", individu.file.length);
                     if (individu.file.length == 0) {
-                        createFile(individu, gameId);
-                    }
-                    let nouvellePos = individu.file.shift();
+                        if ((individu.need.includes("eat") && game.tiles[individu.pos.x][individu.pos.y].nourriture) || (individu.need.includes("drink") && game.tiles[individu.pos.x][individu.pos.y].type == 0)) {
+                            console.log("individu ", individu.id, " from ", individu.parent, "has found what he was looking for and will now wait untill he is satisfied")
+                            individu.moveTurns = 0;
+                            nouvellePos = individu.pos;
+
+                        } else {
+
+                            console.log("individu ", individu.id, " from ", individu.parent, "has no movement file and will create one.")
+                            createFile(individu, gameId);
+                            if (individu.skill == "fast sprinters") {
+                                individu.moveTurns = individu.file.length;
+                            }
+                            nouvellePos = individu.file.shift();
+                        }
+                    } else nouvellePos = individu.file.shift();
+                    
                     if (games[gameId].tiles[nouvellePos.x][nouvellePos.y].population != 0) {
-                        if (nouvellePos.x == individu.origine.x && nouvellePos.y == individu.origine.y) {
+                        if (nouvellePos.x == individu.origine.x && nouvellePos.y == individu.origine.y || individu.skill == "social") {
                             deplacerIndividu(individu, nouvellePos, gameId);
                             individu.moveTurns--;
                         } else if (!getNeighbors(nouvellePos, games[gameId].size_x, games[gameId].size_y).some(pos => games[gameId].tiles[pos.x][pos.y].population == 0)) {
                             individu.moveTurns--;
                         } else {
+                            console.log("the tile ", nouvellePos, " is occupied and ", individu.id, " from ", individu.parent, " (currently at : ", individu.pos, ") will create a new movement file")
                             createFile(individu, gameId);
                             nouvellePos = individu.file.shift();
                             deplacerIndividu(individu, nouvellePos, gameId);
                             individu.moveTurns--;
                         }
-                    } else
+                    } else {
                         if (nouvellePos.x !== individu.pos.x || nouvellePos.y !== individu.pos.y) {
                             deplacerIndividu(individu, nouvellePos, gameId);
                             individu.moveTurns--;
@@ -396,11 +508,14 @@ function DeplacerIndividus(gameId) {
                         } else {
                             individu.moveTurns--;
                         }
+
+                    }
                 }
             }
         }
         io.to(gameId).emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
-    }, 500);
+        await sleep(500); // Wait for 300ms before the next iteration
+    }
 }
 
 function preTurnIndividus(gameId) {
@@ -413,11 +528,13 @@ function preTurnIndividus(gameId) {
 
         for (let individu of player.individus) {
 
-            if (individu.satiété < 5) {
+            if (individu.satiété < 5 && !individu.need.includes("eat")) {
+                console.log("individu ", individu.id, " from ", individu.parent, "is hungry and will look for food")
                 individu.need.unshift('eat');
                 createFile(individu, gameId);
             }
-            if (individu.soif < 5) {
+            if (individu.soif < 5 && !individu.need.includes("drink")) {
+                console.log("individu ", individu.id, " from ", individu.parent, "is thirsty and will look for water")
                 individu.need.unshift('drink');
                 createFile(individu, gameId);
             }
@@ -438,7 +555,11 @@ function postTurnIndividus(gameId) {
                 individu.reproduceCooldown--;
             }
             if (game.tiles[individu.pos.x][individu.pos.y].nourriture) {
+                console.log("individu ", individu.id, " from ", individu.parent, "is eating at ", individu.pos)
                 individu.satiété += 3;
+
+                removeFood(individu.pos, gameId);
+
                 if (individu.reproduceCooldown == 0) {
                     individu.canReproduce = true;
                     individu.mode.unshift("reproduce");
@@ -452,6 +573,7 @@ function postTurnIndividus(gameId) {
                 }
 
             } else if (game.tiles[individu.pos.x][individu.pos.y].type == 0) {
+                console.log("individu ", individu.id, " from ", individu.parent, "is drinking at ", individu.pos)
                 if (individu.need.includes("drink")) {
                     individu.need = individu.need.filter(need => need != "drink");
                     if (individu.mode[0] != "drinking" && !individu.mode.includes("drinking")) {
@@ -460,13 +582,17 @@ function postTurnIndividus(gameId) {
                 }
 
                 individu.soif += 1;
+                if (individu.skill == "aquatique") {
+                    individu.satiété += 0.1;
+                }
                 if (individu.soif > player.maxSoif) {
                     individu.soif = player.maxSoif;
                 }
 
                 if (individu.mode[0] == "drinking") {
                     individu.satiété -= player.afkSatiété;
-                    if (individu.soif > Math.floor(player.maxSoif * 0.8)) {
+                    if (individu.soif > Math.floor(player.maxSoif * 0.7)) {
+                        console.log("individu ", individu.id, " from ", individu.parent, "has finished drinking and will now get back to what he was doing.")
                         individu.mode.shift();
                     }
                 }
@@ -474,6 +600,7 @@ function postTurnIndividus(gameId) {
 
             if (individu.mode[0] == "reproduce") {
                 if (individu.pos.x == individu.origine.x && individu.pos.y == individu.origine.y) {
+                    console.log("individu ", individu.id, " from ", individu.parent, "has reached his base and will reproduce when a mate is available")
                     if (individu.canReproduce) {
                         player.waitingReproduction.push(individu);
                         individu.mode.shift();
@@ -483,9 +610,11 @@ function postTurnIndividus(gameId) {
                         individu.soif -= player.afkSoif;
                         if (reproductible.length >= 2) {
 
+
                             let individu1 = reproductible.shift();
                             let individu2 = reproductible.shift();
 
+                            console.log("individu ", individu1.id, "and individu ", individu2.id, " from ", individu2.parent, "are reproducing")
                             individu1.canReproduce = false;
                             individu2.canReproduce = false;
 
@@ -500,18 +629,22 @@ function postTurnIndividus(gameId) {
                     }
                 }
             }
-
+            if (individu.skill == "farmers") {
+                game.tiles[individu.pos.x][individu.pos.y].farmed += 1;
+            }
 
             individu.satiété -= individu.hasMoved * player.moveSatiété;
             individu.soif -= individu.hasMoved * player.moveSoif;
 
             if (individu.satiété < 0) {
+                console.log("individu ", individu.id, " from ", individu.parent, "has starved to death")
                 game.tiles[individu.pos.x][individu.pos.y].population = 0;
                 let idToRemove = individu.id;
                 player.individus = player.individus.filter(individu => individu.id != idToRemove);
 
             }
             if (individu.soif < 0) {
+                console.log("individu ", individu.id, " from ", individu.parent, "has died of thirst")
                 game.tiles[individu.pos.x][individu.pos.y].population = 0;
                 let idToRemove = individu.id;
                 player.individus = player.individus.filter(individu => individu.id != idToRemove);
@@ -526,34 +659,63 @@ function getPosBase(number, gameId) {
         case 1:
             return { x: 0, y: Math.floor(games[gameId].size_y / 2) };
         case 2:
-            return { x: games[gameId].size_x-1, y: Math.floor(games[gameId].size_y / 2) };
+            return { x: games[gameId].size_x - 1, y: Math.floor(games[gameId].size_y / 2) };
         case 3:
             return { x: Math.floor(games[gameId].size_x / 2), y: 0 };
         case 4:
-            return { x: Math.floor(games[gameId].size_x / 2), y: games[gameId].size_y -1};
+            return { x: Math.floor(games[gameId].size_x / 2), y: games[gameId].size_y - 1 };
     }
 }
-
-function turn(gameId) {
+async function turn(gameId) {
     const game = games[gameId];
 
     // Check if the game exists and has players
     if (game && game.players) {
 
+        console.log("Pre turn : ___________________________");
         preTurnIndividus(gameId);
-        DeplacerIndividus(gameId);
+
+        console.log("\nDeplacement : ___________________________");
+        await DeplacerIndividus(gameId);
+
+        console.log("\nPost turn : ___________________________");
         postTurnIndividus(gameId);
+        if (game.currentTour % 10 == 0) {
+            createFood(gameId);
+        }
         io.to(gameId).emit("tiles", games[gameId].tiles); // Emit the updated tiles to clients
         io.to(gameId).emit("gameInfo", games[gameId]); // Emit the infos of the game to clients
         let player = game.players[Object.keys(game.players)[0]];
+        console.log("\n");
         console.log("turn " + game.currentTour + " of game " + gameId + " ended");
+        console.log("\n");
         game.currentTour++;
 
         // Call the turn function again after 1 second
-        setTimeout(() => {
-            turn(gameId);
-        }, 1000);
+        await new Promise(resolve => setTimeout(resolve, 500));
 
+        if (Object.keys(games[gameId].players).length == 1) {
+            if (game.players[Object.keys(game.players)[0]].individus.length > 0) {
+                turn(gameId);
+            } else {
+                console.log("\n\n");
+                console.log("game " + gameId + "has ended");
+                console.log("_________________________________________________________")
+                io.to(gameId).emit("gameEnded", gameId);
+            }
+        } else {
+            for (let playerId in game.players) {
+                if (game.players[playerId].individus.length == 0) {
+                    delete game.players[playerId];
+                }
+            }
+            if (Object.keys(game.players).length > 0) {
+                turn(gameId);
+            } else {
+                console.log("game " + gameId + "has ended");
+                io.to(gameId).emit("gameEnded", gameId);
+            }
+        }
     } else {
         // Handle the case where game or players are not defined
         console.error(`Invalid game or players for gameId: ${gameId}`);
@@ -571,7 +733,7 @@ function testAttribut(attribute, gameId) {
         // Check if any player has the same attribute values
         for (let playerId of Object.keys(game.players)) {
             console.log(playerId)
-            console.log("given attribute: ",attribute, "compared to: ", game.players[playerId].attributs)
+            console.log("given attribute: ", attribute, "compared to: ", game.players[playerId].attributs)
             const player = game.players[playerId];
             if (player.attributs &&
                 player.attributs.vitesse === parseInt(attribute.vitesse) &&
@@ -607,6 +769,8 @@ function resetTiles(gameId) {
 io.on('connection', (socket) => {
 
     socket.on("newGame", data => {
+
+        console.log("newGame", data);
         let gameId = createGame(data.size_x, data.size_y, data.maxPlayers, data.creator);
 
         socket.emit("joinGameResponse",
@@ -617,14 +781,15 @@ io.on('connection', (socket) => {
         io.emit("newGame", { gameId: gameId, game: games[gameId] });
     });
 
-    socket.on("startGame", (gameId,callback) => {
-        if (!some(games[gameId].players, player => !player.pret)) {
+    socket.on("startGame", (gameId, callback) => {
+        if (games.hasOwnProperty(gameId) && Object.values(games[gameId].players).every(player => player.pret)) {
 
             let game = games[gameId];
             for (let playerId in game.players) {
                 creerIndividu(gameId, game.players[playerId], 2);
             }
             socket.emit("gameStarted");
+            turn(gameId);
             callback(true);
         } else {
             callback(false);
@@ -671,16 +836,21 @@ io.on('connection', (socket) => {
             "number": Object.keys(games[gameId].players).length + 1,
             "maxSatiété": 10,
             "maxSoif": 10,
-            "afkSatiété": 0.1,
-            "afkSoif": 0.1,
-            "moveSatiété": 0.4,
-            "moveSoif": 0.3,
+            "afkSatiété": 0.12,
+            "afkSoif": 0.12,
+            "moveSatiété": 0.5,
+            "moveSoif": 0.4,
             "reproductionCooldown": 5,
             "social": false,
             "montagnard": false,
+            "aquatique": false,
+            "farmer": false,
+            "fast": false,
+            "skill": "",
             "posBase": getPosBase(Object.keys(games[gameId].players).length + 1, gameId),
             pret: false
         };
+
 
         // Emit 'playerJoined' to all clients in the game
         io.to(gameId)
@@ -746,20 +916,24 @@ io.on('connection', (socket) => {
         resetTiles(gameId);
     });
 
-    socket.on("getGames", ()=>{
+    socket.on("getGames", () => {
         console.log("getGames");
         socket.emit("getGamesResponse", games)
     })
 
     socket.on("submitAttributes", (data, callback) => {
         console.log(data);
+        let gameId = data.gameId;
+        let playerName = data.joueur;
         if (testAttribut(data, data.gameId)) {
             console.log("passed")
-            games[data.gameId].players[data.joueur].attributs = creerAttributs(parseInt(data.vitesse), parseInt(data.vision), parseInt(data.reproduction));
-            console.log(games[data.gameId].players[data.joueur].attributs);
+            games[gameId].players[playerName].attributs = creerAttributs(parseInt(data.vitesse), parseInt(data.vision), parseInt(data.reproduction));
+            console.log(games[gameId].players[playerName].attributs);
             callback(true);
             socket.emit("pret");
-            games[data.gameId].players[data.joueur].pret = true;
+            games[gameId].players[playerName].pret = true;
+            decideSkill(games[gameId].players[playerName], gameId);
+            socket.emit("skill", games[gameId].players[playerName].skill);
 
         } else {
             callback(false);

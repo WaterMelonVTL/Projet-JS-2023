@@ -12,11 +12,8 @@ $(document).ready(function () {
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     gameId = url.searchParams.get("gameId");
-
-
-
     requestGameInfo(gameId);
-
+    $("#skillModal").css("display", "none");
 });
 
 function openModal(allowed, message, hasToSetName = false) {
@@ -34,6 +31,10 @@ function openModal(allowed, message, hasToSetName = false) {
 function closeModal() {
     console.log("modal closed");
     $("#myModal").css("display", "none");
+};
+
+function closeSkillModal() {
+    $("#skillModal").css("display", "none");
 };
 
 function enterGame() {
@@ -120,7 +121,7 @@ function submitAttributes() {
     }
 }
 
-function startGameButton() {
+function startGame() {
 
     socket.emit("startGame", gameId, (response)=>{
         if (response){

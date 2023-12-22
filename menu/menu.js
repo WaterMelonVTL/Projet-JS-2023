@@ -63,9 +63,14 @@ function createGame() {
     var size_y = $("#size-y").val();
 
     // Emit the "newGame" event with the obtained values
-    socket.emit("newGame", { "size_x": size_x, "size_y": size_y, "maxPlayers": maxPlayers, "creator": playerName });
+    console.log("futur createur : " + playerName);
+    if (playerName) {
+        var gameData = { creator: playerName, maxPlayers: maxPlayers, size_x: size_x, size_y: size_y };
+        socket.emit("newGame", gameData);
+    } else {
+        alert("Please enter your name before creating a game.");
+    }
 }
-
 
 // Function to join a game
 function joinGame() {
@@ -82,9 +87,9 @@ function joinGame() {
     setPlayerName(playerName);
     // Get the game ID and player name from the input fields
     var enteredGameId = $("#gameId").val();
-    if (!enteredGameId){
-        if (selectedButton){
-            enteredGameId=selectedButton;
+    if (!enteredGameId) {
+        if (selectedButton) {
+            enteredGameId = selectedButton;
         }
     }
     // Emit the "joinGame" event with the entered game ID and player name
@@ -122,23 +127,23 @@ $(document).ready(function () {
     displayPlayerUI();
 });
 
-let selectedButton='';
+let selectedButton = '';
 
-function selectButton(gameId){
+function selectButton(gameId) {
     const oldButton = $(`#gameButton_${selectedButton}`)
     const button = $(`#gameButton_${gameId}`);
     if (button.length) {
-        button.attr("class","text-xl  h-[3rem] border-2 border-black rounded-md text-black my-1 w-[22rem] scale-105 bg-blue-200 ")
-        oldButton.attr("class","text-xl  h-[3rem] border-y-2 border-gray-600 text-gray-600 my-1 w-[22rem]")
-        selectedButton=gameId;    
+        button.attr("class", "text-xl  h-[3rem] border-2 border-black rounded-md text-black my-1 w-[22rem] scale-105 bg-blue-200 ")
+        oldButton.attr("class", "text-xl  h-[3rem] border-y-2 border-gray-600 text-gray-600 my-1 w-[22rem]")
+        selectedButton = gameId;
     }
 }
 
 function createGameButton(gameId, gameInfo) {
     const button = $("<button></button>");
-    button.text(`id : ${gameId}    -         joueurs : ${gameInfo.players.length}/${gameInfo.maxPlayers}     -    taille : ${gameInfo.size_x}x${gameInfo.size_y}`);
+    button.text(`id : ${gameId}    -         joueurs : ${Object.keys(gameInfo.players).length}/${gameInfo.maxPlayers}     -    taille : ${gameInfo.size_x}x${gameInfo.size_y}`);
     button.attr("id", `gameButton_${gameId}`);
-    button.attr("class","text-xl  h-[3rem] border-y-2 border-gray-600 text-gray-600 my-1 w-[22rem]")
+    button.attr("class", "text-xl  h-[3rem] border-y-2 border-gray-600 text-gray-600 my-1 w-[22rem]")
     button.on("click", function () {
         const selectedGameId = $(this).attr("id").split("_")[1];
         selectButton(selectedGameId);
@@ -151,7 +156,7 @@ function addGameButton(gameId, gameInfo) {
     $("#running-games").append(button);
 }
 
-function updateGameButtonPlayers(gameId, numberOfPlayers, maxPlayers,size_x,size_y) {
+function updateGameButtonPlayers(gameId, numberOfPlayers, maxPlayers, size_x, size_y) {
     const button = $(`#gameButton_${gameId}`);
     if (button.length) {
         button.text(`id : ${gameId} -  joueurs : ${numberOfPlayers}/${maxPlayers} - taille : ${size_x}x${size_y}`);
@@ -173,6 +178,6 @@ socket.on("playerJoined", data => {
     updateGameButtonPlayers(data.gameId, data.numberOfPlayers, data.maxPlayers, data.size_x, data.size_y);
 });
 
-socket.on("newGame", data=>{
-    addGameButton(data.gameId,data.game)
+socket.on("newGame", data => {
+    addGameButton(data.gameId, data.game)
 })
