@@ -39,8 +39,7 @@ socket.on('gameInfo', data => {
     $("#listeJoueurs").text(Object.keys(players));
     console.log(data);
     console.log(data.createur);
-    console.log(playerName);
-    $("capacité").text(data.players[playerName].skill);
+    
     if (data.createur == playerName && data.currentTour == 0) {
         $("#startGameButton").css("display", "block");
     }
@@ -48,11 +47,12 @@ socket.on('gameInfo', data => {
         $("#startGameButton").css("display", "none");
     }
     $("#tourActuel").text(data.currentTour);
+    console.log("skill _________________ ",data.players[playerName].skill);
+    $("#capacité").text(data.players[playerName].skill);
 
 });
 
 socket.on('tiles', tiles => {
-    console.log(tiles);
     drawHexagons(tiles);
     drawOverlay(tiles);
 });

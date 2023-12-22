@@ -22,9 +22,6 @@ function drawHexagon(d, color, x, y) {
         .attr("fill", color)
         .attr("id", "h" + x + y)
         .attr('class', "hexagon")
-        .on("click", function () {
-            play(x, y);
-        });
 }
 
 function generateTiles() {
